@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KUMON โพนพิสัย — หน้าหลัก</title>
+  <style>
+    :root {
+      --bg:      #eaf4fb;
+      --navy:    #1a4a6e;
+      --primary: #f97316;
+      --gold:    #c9a227;
+      --blue:    #5ba4cf;
+      --text:    #1a202c;
+      --muted:   #5a7a92;
+      --border:  #c5e3f2;
+      --card:    #ffffff;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, sans-serif;
+      background: var(--bg);
+      min-height: 100vh;
+    }
+
+    /* ── Nav ── */
+    nav {
+      background: var(--navy);
+      padding: 0 20px;
+      height: 58px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 2px 8px rgba(0,0,0,.2);
+    }
+
+    .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+    }
+
+    .nav-brand img {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 2px solid var(--gold);
+    }
+
+    .nav-brand span {
+      font-weight: 700;
+      font-size: 1rem;
+      color: white;
+      letter-spacing: .3px;
+    }
+
+    .nav-right {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .nav-email {
+      font-size: .78rem;
+      color: #a0c4dd;
+      max-width: 160px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .nav-logout {
+      background: transparent;
+      border: 1px solid #3a6a90;
+      color: #a0c4dd;
+      padding: 5px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: .8rem;
+      white-space: nowrap;
+    }
+
+    .nav-logout:hover { background: #3a6a90; color: white; }
+
+    /* ── Hero ── */
+    .hero {
+      background: linear-gradient(135deg, var(--navy) 0%, #2a6496 100%);
+      color: white;
+      padding: 36px 20px;
+      text-align: center;
+    }
+
+    .hero h2 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+
+    .hero p { color: #a0c4dd; font-size: .9rem; }
+
+    /* ── Menu ── */
+    .container { max-width: 900px; margin: 0 auto; padding: 28px 16px; }
+
+    .menu-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+    }
+
+    .menu-card {
+      background: var(--card);
+      border-radius: 14px;
+      padding: 28px 16px;
+      text-align: center;
+      text-decoration: none;
+      color: var(--text);
+      box-shadow: 0 2px 10px rgba(26,74,110,.08);
+      border-bottom: 3px solid transparent;
+      transition: transform .15s, box-shadow .15s, border-color .15s;
+    }
+
+    .menu-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 24px rgba(26,74,110,.14);
+    }
+
+    .menu-card.orange { border-bottom-color: var(--primary); }
+    .menu-card.blue   { border-bottom-color: var(--blue); }
+    .menu-card.gold   { border-bottom-color: var(--gold); }
+
+    .menu-card .icon {
+      font-size: 2.4rem;
+      margin-bottom: 12px;
+      display: block;
+    }
+
+    .menu-card h3 {
+      font-size: .95rem;
+      font-weight: 700;
+      color: var(--navy);
+      margin-bottom: 5px;
+    }
+
+    .menu-card p {
+      font-size: .78rem;
+      color: var(--muted);
+      line-height: 1.4;
+    }
+
+    /* ── Responsive ── */
+    @media (max-width: 640px) {
+      .nav-email { display: none; }
+      .hero h2   { font-size: 1.25rem; }
+      .menu-grid { grid-template-columns: 1fr; gap: 12px; }
+      .menu-card { padding: 20px 16px; display: flex; align-items: center; gap: 16px; text-align: left; }
+      .menu-card .icon { font-size: 1.8rem; margin-bottom: 0; flex-shrink: 0; }
+    }
+
+    @media (min-width: 641px) and (max-width: 900px) {
+      .menu-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="/index.html" class="nav-brand">
+    <img src="/LOGO.jpg" alt="KUMON">
+    <span>KUMON โพนพิสัย</span>
+  </a>
+  <div class="nav-right">
+    <span class="nav-email" id="userEmail"></span>
+    <button class="nav-logout" id="logoutBtn">ออกจากระบบ</button>
+  </div>
+</nav>
+
+<div class="hero">
+  <h2>ยินดีต้อนรับสู่ ClassScan</h2>
+  <p>ระบบลงเวลาเรียน — เลือกเมนูที่ต้องการ</p>
+</div>
+
+<div class="container">
+  <div class="menu-grid">
+    <a href="/scan.html" class="menu-card orange">
+      <span class="icon">📷</span>
+      <div>
+        <h3>สแกน QR</h3>
+        <p>บันทึกเข้า-ออกห้องเรียน</p>
+      </div>
+    </a>
+    <a href="/dashboard.html" class="menu-card blue">
+      <span class="icon">📊</span>
+      <div>
+        <h3>Dashboard</h3>
+        <p>ดูสถานะนักเรียน Realtime</p>
+      </div>
+    </a>
+    <a href="/admin.html" class="menu-card gold">
+      <span class="icon">👨‍🎓</span>
+      <div>
+        <h3>จัดการนักเรียน</h3>
+        <p>เพิ่มนักเรียน + สร้าง QR Code</p>
+      </div>
+    </a>
+  </div>
+</div>
+
+<script src="/js/config.js"></script>
+<script type="module">
+  import { requireAuth, logout } from '/js/auth.js'
+
+  const session = await requireAuth()
+  document.getElementById('userEmail').textContent = session.user.email
+  document.getElementById('logoutBtn').addEventListener('click', logout)
+</script>
+
+</body>
+</html>
