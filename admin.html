@@ -154,6 +154,12 @@
     }
     .btn-qr:hover { background: #dbeafe; }
 
+    .btn-icon {
+      background: none; border: none; cursor: pointer;
+      padding: 5px 8px; border-radius: 7px; font-size: .8rem; color: #94a3b8;
+    }
+    .btn-icon.edit:hover { background: #fefce8; color: #a16207; }
+
     .btn-del {
       background: none; border: none; cursor: pointer;
       padding: 5px 8px; border-radius: 7px; font-size: .85rem; color: #94a3b8;
@@ -299,6 +305,24 @@
     }
     .btn-print:hover { background: #2a6496; }
 
+    /* ── Toast ───────────────────────────────────────── */
+    .toast {
+      position: fixed; bottom: 24px; right: 20px;
+      padding: 12px 20px; border-radius: 10px;
+      font-size: .875rem; font-weight: 600; color: white;
+      box-shadow: 0 6px 20px rgba(0,0,0,.2);
+      transform: translateY(80px); opacity: 0;
+      transition: transform .3s, opacity .3s;
+      z-index: 500; max-width: 280px; pointer-events: none;
+    }
+    .toast.show   { transform: translateY(0); opacity: 1; }
+    .toast.ok     { background: #15803d; }
+    .toast.err    { background: #b91c1c; }
+
+    /* ── Form extras ─────────────────────────────────── */
+    .form-hint { font-size: .75rem; color: var(--muted); margin-top: 4px; }
+    .form-opt  { font-weight: 400; color: var(--muted); font-size: .78rem; }
+
     /* ── Mobile Responsive ───────────────────────────── */
     @media (max-width: 640px) {
       .nav-email { display: none; }
@@ -383,8 +407,8 @@
   <div class="modal-box">
     <div class="modal-head">
       <div>
-        <h3>เพิ่มนักเรียน</h3>
-        <p>กรอกข้อมูลและเลือกวิชา</p>
+        <h3 id="modal-title">เพิ่มนักเรียน</h3>
+        <p id="modal-sub">กรอกข้อมูลและเลือกวิชา</p>
       </div>
       <button class="btn-close" id="closeAdd">✕</button>
     </div>
@@ -397,6 +421,11 @@
       <div class="form-group">
         <label>ชื่อเล่น</label>
         <input type="text" name="nickname" placeholder="เช่น มิ้น">
+      </div>
+      <div class="form-group">
+        <label>LINE User ID ผู้ปกครอง <span class="form-opt">(ไม่บังคับ)</span></label>
+        <input type="text" name="line_user_id" placeholder="เช่น Uxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx">
+        <p class="form-hint">ใช้สำหรับแจ้งเตือนผู้ปกครองเมื่อเข้า-ออกห้องเรียน</p>
       </div>
       <div class="form-group">
         <label>วิชาที่ลงทะเบียน</label>
@@ -425,14 +454,17 @@
   </div>
 </div>
 
+<div class="toast" id="toast"></div>
+
 <script src="/js/config.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
 <script type="module">
 import { requireAuth, logout } from '/js/auth.js'
 import { supabase } from '/js/supabase.js'
 
-let subjects = []
-let students = []
+let subjects  = []
+let students  = []
+let editingId = null   // null = add mode, uuid = edit mode
 
 // ── Init ─────────────────────────────────────────────────────
 
@@ -443,7 +475,7 @@ async function init() {
   document.getElementById('addBtn').addEventListener('click', openAdd)
   document.getElementById('closeAdd').addEventListener('click', () => closeModal('addModal'))
   document.getElementById('closeQR').addEventListener('click', () => closeModal('qrModal'))
-  document.getElementById('addForm').addEventListener('submit', submitAdd)
+  document.getElementById('addForm').addEventListener('submit', submitForm)
 
   document.querySelectorAll('.modal-overlay').forEach(el => {
     el.addEventListener('click', e => { if (e.target === el) el.hidden = true })
@@ -454,19 +486,36 @@ async function init() {
   await loadStudents()
 }
 
-// ── Data ─────────────────────────────────────────────────────
+// ── Toast ─────────────────────────────────────────────────────
+
+let toastTimer
+function toast(msg, type = 'ok') {
+  const el = document.getElementById('toast')
+  el.textContent = msg
+  el.className   = `toast ${type} show`
+  clearTimeout(toastTimer)
+  toastTimer = setTimeout(() => el.classList.remove('show'), 3500)
+}
+
+// ── Load Data ────────────────────────────────────────────────
 
 async function loadSubjects() {
-  const { data } = await supabase.from('subjects').select('*').order('name')
+  const { data, error } = await supabase.from('subjects').select('*').order('name')
+  if (error) { toast('โหลดวิชาไม่สำเร็จ: ' + error.message, 'err'); return }
   subjects = data || []
 }
 
 async function loadStudents() {
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('students')
-    .select('*, student_subjects(subject_id, subjects(id, name, color))')
+    .select(`
+      id, name, nickname, line_user_id, qr_code, created_at,
+      student_subjects ( subject_id, subjects ( id, name, color ) )
+    `)
     .eq('is_active', true)
     .order('name')
+
+  if (error) { toast('โหลดข้อมูลนักเรียนไม่สำเร็จ: ' + error.message, 'err'); return }
   students = data || []
   renderStudents()
 }
@@ -483,7 +532,13 @@ function cls(name = '') {
 
 function closeModal(id) { document.getElementById(id).hidden = true }
 
-// ── Render ───────────────────────────────────────────────────
+function setFormBusy(busy) {
+  const btn = document.getElementById('addSubmit')
+  btn.disabled    = busy
+  btn.textContent = busy ? 'กำลังบันทึก...' : 'บันทึก'
+}
+
+// ── Render Students ──────────────────────────────────────────
 
 function renderStudents() {
   const grid  = document.getElementById('studentGrid')
@@ -507,6 +562,9 @@ function renderStudents() {
           `<span class="badge badge-${cls(ss.subjects.name)}">${ss.subjects.name}</span>`
         ).join('')
       : `<span class="no-sub">ยังไม่มีวิชา</span>`
+    const lineTag = s.line_user_id
+      ? `<span class="badge badge-default" style="font-size:.7rem">LINE ✓</span>`
+      : ''
 
     return `
       <div class="student-card">
@@ -517,16 +575,17 @@ function renderStudents() {
             ${s.nickname ? `<div class="card-nick">(${s.nickname})</div>` : ''}
           </div>
           <div class="card-actions">
-            <button class="btn-qr" onclick="openQR('${s.id}')">📱 QR</button>
-            <button class="btn-del" onclick="doDelete('${s.id}','${s.name.replace(/'/g,"\\'")}')">🗑️</button>
+            <button class="btn-qr"          onclick="openQR('${s.id}')">📱 QR</button>
+            <button class="btn-icon edit"   onclick="openEdit('${s.id}')" title="แก้ไข">✏️</button>
+            <button class="btn-del"         onclick="doDelete('${s.id}','${s.name.replace(/'/g,"\\'")}')">🗑️</button>
           </div>
         </div>
-        <div class="card-subjects">${badges}</div>
+        <div class="card-subjects">${badges}${lineTag}</div>
       </div>`
   }).join('')
 }
 
-// ── Add Form ─────────────────────────────────────────────────
+// ── Subject Picks (checkbox pills) ───────────────────────────
 
 function buildSubjectPicks() {
   document.getElementById('subjectPicks').innerHTML = subjects.map(s => {
@@ -545,49 +604,166 @@ window.togglePick = (id, c) => {
   label.className = `pick-item${label.querySelector('input').checked ? ` on-${c}` : ''}`
 }
 
-function openAdd() {
-  document.getElementById('addForm').reset()
-  document.querySelectorAll('.pick-item').forEach(el => el.className = 'pick-item')
-  document.getElementById('addError').style.display = 'none'
-  document.getElementById('addModal').hidden = false
+function resetPicksTo(selectedIds = []) {
+  subjects.forEach(s => {
+    const label = document.getElementById(`pick-${s.id}`)
+    if (!label) return
+    const cb = label.querySelector('input')
+    cb.checked      = selectedIds.includes(s.id)
+    label.className = `pick-item${cb.checked ? ` on-${cls(s.name)}` : ''}`
+  })
 }
 
-async function submitAdd(e) {
+// ── Open Add Modal ───────────────────────────────────────────
+
+function openAdd() {
+  editingId = null
+  document.getElementById('addForm').reset()
+  resetPicksTo()
+  document.getElementById('addError').style.display   = 'none'
+  document.getElementById('modal-title').textContent  = 'เพิ่มนักเรียน'
+  document.getElementById('modal-sub').textContent    = 'กรอกข้อมูลและเลือกวิชา'
+  document.getElementById('addSubmit').textContent    = 'บันทึก'
+  document.getElementById('addModal').hidden          = false
+}
+
+// ── Open Edit Modal ──────────────────────────────────────────
+
+window.openEdit = (studentId) => {
+  const s = students.find(x => x.id === studentId)
+  if (!s) return
+
+  editingId = studentId
+
+  const form = document.getElementById('addForm')
+  form.reset()
+
+  // ใช้ elements[] แทน form.name เพื่อหลีกเลี่ยง property ชนกัน
+  form.elements['name'].value         = s.name        || ''
+  form.elements['nickname'].value     = s.nickname    || ''
+  form.elements['line_user_id'].value = s.line_user_id || ''
+
+  const enrolledIds = (s.student_subjects || []).map(ss => ss.subject_id)
+  resetPicksTo(enrolledIds)
+
+  document.getElementById('addError').style.display  = 'none'
+  document.getElementById('modal-title').textContent = 'แก้ไขข้อมูลนักเรียน'
+  document.getElementById('modal-sub').textContent   = s.name
+  document.getElementById('addSubmit').textContent   = 'บันทึกการแก้ไข'
+  document.getElementById('addModal').hidden         = false
+}
+
+// ── Submit (Add or Edit) ─────────────────────────────────────
+
+async function submitForm(e) {
   e.preventDefault()
-  const btn   = document.getElementById('addSubmit')
   const errEl = document.getElementById('addError')
   errEl.style.display = 'none'
+  setFormBusy(true)
 
-  const name     = e.target.name.value.trim()
-  const nickname = e.target.nickname.value.trim()
-  const selected = [...e.target.querySelectorAll('input[name=subjects]:checked')].map(c => c.value)
+  // ใช้ FormData — หลีกเลี่ยง e.target.name ที่ชนกับ form property
+  const fd           = new FormData(e.target)
+  const name         = (fd.get('name')         || '').trim()
+  const nickname     = (fd.get('nickname')     || '').trim()
+  const line_user_id = (fd.get('line_user_id') || '').trim()
+  const selected     = fd.getAll('subjects')
 
-  btn.disabled    = true
-  btn.textContent = 'กำลังบันทึก...'
+  if (!name) {
+    errEl.textContent   = 'กรุณาใส่ชื่อจริง'
+    errEl.style.display = 'block'
+    setFormBusy(false)
+    return
+  }
+
+  if (editingId) {
+    await doUpdate(editingId, { name, nickname, line_user_id, selected })
+  } else {
+    await doCreate({ name, nickname, line_user_id, selected })
+  }
+}
+
+// ── Create Student ───────────────────────────────────────────
+
+async function doCreate({ name, nickname, line_user_id, selected }) {
+  const errEl = document.getElementById('addError')
 
   const { data: student, error } = await supabase
     .from('students')
-    .insert({ name, nickname: nickname || null, qr_code: crypto.randomUUID() })
-    .select()
+    .insert({
+      name,
+      nickname:     nickname     || null,
+      line_user_id: line_user_id || null,
+      qr_code:      crypto.randomUUID(),
+    })
+    .select('id')
     .single()
 
   if (error) {
-    errEl.textContent    = 'เกิดข้อผิดพลาด: ' + error.message
-    errEl.style.display  = 'block'
-    btn.disabled         = false
-    btn.textContent      = 'บันทึก'
+    errEl.textContent   = 'บันทึกไม่สำเร็จ: ' + error.message
+    errEl.style.display = 'block'
+    setFormBusy(false)
     return
   }
 
   if (selected.length) {
-    await supabase.from('student_subjects').insert(
-      selected.map(sid => ({ student_id: student.id, subject_id: sid }))
-    )
+    const { error: subErr } = await supabase
+      .from('student_subjects')
+      .insert(selected.map(sid => ({ student_id: student.id, subject_id: sid })))
+
+    if (subErr) {
+      errEl.textContent   = 'บันทึกวิชาไม่สำเร็จ: ' + subErr.message
+      errEl.style.display = 'block'
+      setFormBusy(false)
+      return
+    }
   }
 
-  btn.disabled    = false
-  btn.textContent = 'บันทึก'
+  setFormBusy(false)
   closeModal('addModal')
+  toast(`เพิ่ม "${name}" สำเร็จแล้ว ✓`)
+  await loadStudents()
+}
+
+// ── Update Student ───────────────────────────────────────────
+
+async function doUpdate(id, { name, nickname, line_user_id, selected }) {
+  const errEl = document.getElementById('addError')
+
+  const { error } = await supabase
+    .from('students')
+    .update({
+      name,
+      nickname:     nickname     || null,
+      line_user_id: line_user_id || null,
+    })
+    .eq('id', id)
+
+  if (error) {
+    errEl.textContent   = 'แก้ไขไม่สำเร็จ: ' + error.message
+    errEl.style.display = 'block'
+    setFormBusy(false)
+    return
+  }
+
+  // อัปเดต subjects: ลบเก่าทั้งหมด แล้ว insert ใหม่
+  await supabase.from('student_subjects').delete().eq('student_id', id)
+
+  if (selected.length) {
+    const { error: subErr } = await supabase
+      .from('student_subjects')
+      .insert(selected.map(sid => ({ student_id: id, subject_id: sid })))
+
+    if (subErr) {
+      errEl.textContent   = 'แก้ไขวิชาไม่สำเร็จ: ' + subErr.message
+      errEl.style.display = 'block'
+      setFormBusy(false)
+      return
+    }
+  }
+
+  setFormBusy(false)
+  closeModal('addModal')
+  toast(`แก้ไข "${name}" สำเร็จแล้ว ✓`)
   await loadStudents()
 }
 
@@ -604,7 +780,8 @@ window.openQR = async (studentId) => {
   const grid = document.getElementById('qrGrid')
 
   if (!subs.length) {
-    grid.innerHTML = '<p style="color:#94a3b8;padding:28px;text-align:center;width:100%">ยังไม่มีวิชาที่ลงทะเบียน</p>'
+    grid.innerHTML = `<p style="color:#94a3b8;padding:28px;text-align:center;width:100%">
+      ยังไม่มีวิชาที่ลงทะเบียน<br><small>กด ✏️ เพื่อเพิ่มวิชา</small></p>`
     document.getElementById('qrModal').hidden = false
     return
   }
@@ -635,7 +812,9 @@ window.openQR = async (studentId) => {
 
 window.doDelete = async (id, name) => {
   if (!confirm(`ลบ "${name}" ออกจากระบบ?\n(ประวัติการเข้าเรียนจะยังคงอยู่)`)) return
-  await supabase.from('students').update({ is_active: false }).eq('id', id)
+  const { error } = await supabase.from('students').update({ is_active: false }).eq('id', id)
+  if (error) { toast('ลบไม่สำเร็จ: ' + error.message, 'err'); return }
+  toast(`ลบ "${name}" แล้ว`)
   await loadStudents()
 }
 
