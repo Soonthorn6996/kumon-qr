@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KUMON โพนพิสัย — สแกน QR</title>
+  <style>
+    :root {
+      --bg:      #eaf4fb;
+      --navy:    #1a4a6e;
+      --primary: #f97316;
+      --gold:    #c9a227;
+      --blue:    #5ba4cf;
+      --text:    #1a202c;
+      --muted:   #5a7a92;
+      --border:  #c5e3f2;
+      --card:    #ffffff;
+
+      --math-bg: #fff7ed; --math-fg: #c2410c; --math-bd: #fdba74;
+      --thai-bg: #f5f3ff; --thai-fg: #6d28d9; --thai-bd: #c4b5fd;
+      --eng-bg:  #eff6ff; --eng-fg:  #1d4ed8; --eng-bd:  #93c5fd;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    nav {
+      background: var(--navy);
+      padding: 0 20px;
+      height: 58px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 2px 8px rgba(0,0,0,.2);
+    }
+
+    .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      min-width: 0;
+    }
+
+    .nav-brand img {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 2px solid var(--gold);
+      flex-shrink: 0;
+    }
+
+    .nav-brand span {
+      font-weight: 700;
+      font-size: 1rem;
+      color: white;
+      letter-spacing: .3px;
+      white-space: nowrap;
+    }
+
+    .nav-right { display: flex; align-items: center; gap: 10px; }
+
+    .nav-email {
+      font-size: .78rem;
+      color: #a0c4dd;
+      max-width: 150px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .nav-link,
+    .nav-logout {
+      color: #a0c4dd;
+      font-size: .8rem;
+      text-decoration: none;
+      padding: 5px 11px;
+      border: 1px solid #3a6a90;
+      border-radius: 6px;
+      background: transparent;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .nav-link:hover,
+    .nav-logout:hover { background: #3a6a90; color: white; }
+
+    .page-top {
+      background: linear-gradient(135deg, var(--navy) 0%, #2a6496 100%);
+      padding: 22px 20px;
+      color: white;
+    }
+
+    .page-top-inner {
+      max-width: 1100px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+    }
+
+    .page-top h2 { font-size: 1.2rem; font-weight: 700; }
+    .page-top p  { color: #a0c4dd; font-size: .82rem; margin-top: 3px; }
+
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 22px 16px 36px;
+      display: grid;
+      grid-template-columns: minmax(0, 1.1fr) minmax(320px, .9fr);
+      gap: 16px;
+      align-items: start;
+    }
+
+    .panel {
+      background: var(--card);
+      border-radius: 14px;
+      box-shadow: 0 2px 10px rgba(26,74,110,.08);
+      border: 1px solid rgba(197,227,242,.75);
+      overflow: hidden;
+    }
+
+    .panel-head {
+      padding: 16px 18px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .panel-head h3 {
+      color: var(--navy);
+      font-size: 1rem;
+      font-weight: 700;
+    }
+
+    .panel-head p { color: var(--muted); font-size: .78rem; margin-top: 2px; }
+
+    .scanner-body { padding: 18px; }
+
+    #reader {
+      width: 100%;
+      min-height: 340px;
+      border-radius: 12px;
+      overflow: hidden;
+      border: 2px dashed var(--border);
+      background: #f5fbff;
+    }
+
+    #reader video {
+      border-radius: 10px;
+    }
+
+    .camera-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto auto;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    select,
+    input {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1.5px solid var(--border);
+      border-radius: 9px;
+      font-size: .88rem;
+      color: var(--text);
+      background: #f5fbff;
+    }
+
+    select:focus,
+    input:focus {
+      outline: none;
+      border-color: var(--blue);
+      background: white;
+      box-shadow: 0 0 0 3px rgba(91,164,207,.18);
+    }
+
+    .btn {
+      border: none;
+      border-radius: 9px;
+      padding: 10px 14px;
+      font-weight: 700;
+      font-size: .84rem;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--primary), #fb923c);
+      color: white;
+      box-shadow: 0 4px 12px rgba(249,115,22,.28);
+    }
+
+    .btn-dark {
+      background: var(--navy);
+      color: white;
+      box-shadow: 0 4px 12px rgba(26,74,110,.22);
+    }
+
+    .btn-light {
+      background: #eff6ff;
+      color: #1d4ed8;
+      border: 1px solid var(--eng-bd);
+    }
+
+    .btn:disabled {
+      background: #94a3b8;
+      border-color: #94a3b8;
+      box-shadow: none;
+      color: white;
+      cursor: not-allowed;
+    }
+
+    .manual-box {
+      margin-top: 14px;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 8px;
+    }
+
+    .result {
+      padding: 20px;
+      border-left: 5px solid var(--blue);
+    }
+
+    .result.empty {
+      color: var(--muted);
+      text-align: center;
+      padding: 36px 18px;
+    }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 28px;
+      padding: 5px 12px;
+      border-radius: 999px;
+      font-size: .78rem;
+      font-weight: 800;
+      margin-bottom: 12px;
+    }
+
+    .student-name {
+      color: var(--navy);
+      font-weight: 800;
+      font-size: 1.45rem;
+      line-height: 1.25;
+    }
+
+    .student-nick {
+      color: var(--muted);
+      margin-top: 3px;
+      font-size: .9rem;
+    }
+
+    .meta-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+      margin-top: 16px;
+    }
+
+    .meta {
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 12px;
+    }
+
+    .meta span {
+      display: block;
+      color: var(--muted);
+      font-size: .72rem;
+      margin-bottom: 2px;
+    }
+
+    .meta strong {
+      color: var(--text);
+      font-size: .95rem;
+    }
+
+    .subject-badge {
+      display: inline-flex;
+      align-items: center;
+      min-height: 30px;
+      padding: 5px 12px;
+      border-radius: 999px;
+      font-size: .82rem;
+      font-weight: 800;
+      margin-top: 12px;
+    }
+
+    .math-theme { border-left-color: var(--math-fg); }
+    .thai-theme { border-left-color: var(--thai-fg); }
+    .english-theme { border-left-color: var(--eng-fg); }
+
+    .math-theme .status-pill,
+    .math-badge { background: var(--math-bg); color: var(--math-fg); border: 1px solid var(--math-bd); }
+    .thai-theme .status-pill,
+    .thai-badge { background: var(--thai-bg); color: var(--thai-fg); border: 1px solid var(--thai-bd); }
+    .english-theme .status-pill,
+    .english-badge { background: var(--eng-bg); color: var(--eng-fg); border: 1px solid var(--eng-bd); }
+    .default-theme .status-pill,
+    .default-badge { background: #f8fafc; color: var(--muted); border: 1px solid var(--border); }
+
+    .result.in .status-pill { background: #dcfce7; color: #15803d; border-color: #86efac; }
+    .result.out .status-pill { background: #eff6ff; color: #1d4ed8; border-color: #93c5fd; }
+    .result.err .status-pill { background: #fff7ed; color: #c2410c; border-color: #fdba74; }
+
+    .history-list {
+      display: grid;
+      gap: 0;
+    }
+
+    .history-item {
+      padding: 13px 16px;
+      border-top: 1px solid var(--border);
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .history-item:first-child { border-top: none; }
+
+    .history-name {
+      color: var(--navy);
+      font-weight: 700;
+      font-size: .9rem;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .history-sub {
+      color: var(--muted);
+      font-size: .76rem;
+      margin-top: 2px;
+    }
+
+    .history-time {
+      color: var(--muted);
+      font-size: .76rem;
+      text-align: right;
+      white-space: nowrap;
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 20px;
+      padding: 12px 20px;
+      border-radius: 10px;
+      font-size: .875rem;
+      font-weight: 600;
+      color: white;
+      box-shadow: 0 6px 20px rgba(0,0,0,.2);
+      transform: translateY(80px);
+      opacity: 0;
+      transition: transform .3s, opacity .3s;
+      z-index: 500;
+      max-width: 300px;
+      pointer-events: none;
+    }
+
+    .toast.show { transform: translateY(0); opacity: 1; }
+    .toast.ok { background: #15803d; }
+    .toast.err { background: #b91c1c; }
+
+    @media (max-width: 820px) {
+      .container { grid-template-columns: 1fr; }
+      #reader { min-height: 300px; }
+    }
+
+    @media (max-width: 640px) {
+      nav { padding: 0 14px; }
+      .nav-email,
+      .nav-link { display: none; }
+      .nav-brand span { font-size: .92rem; }
+      .page-top-inner { align-items: flex-start; }
+      .camera-row { grid-template-columns: 1fr 1fr; }
+      .camera-row select { grid-column: 1 / -1; }
+      .manual-box { grid-template-columns: 1fr; }
+      .meta-grid { grid-template-columns: 1fr; }
+      .student-name { font-size: 1.25rem; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="/index.html" class="nav-brand">
+    <img src="/LOGO.jpg" alt="KUMON">
+    <span>KUMON โพนพิสัย</span>
+  </a>
+  <div class="nav-right">
+    <span class="nav-email" id="userEmail"></span>
+    <a href="/index.html" class="nav-link">← หน้าหลัก</a>
+    <button class="nav-logout" id="logoutBtn">ออก</button>
+  </div>
+</nav>
+
+<div class="page-top">
+  <div class="page-top-inner">
+    <div>
+      <h2>สแกน QR เข้า-ออกห้องเรียน</h2>
+      <p id="scanStatus">พร้อมสแกน QR รายวิชา</p>
+    </div>
+  </div>
+</div>
+
+<main class="container">
+  <section class="panel">
+    <div class="panel-head">
+      <div>
+        <h3>กล้องสแกน</h3>
+        <p>ใช้ QR ที่สร้างจากหน้า “จัดการนักเรียน”</p>
+      </div>
+    </div>
+    <div class="scanner-body">
+      <div class="camera-row">
+        <select id="cameraSelect" aria-label="เลือกกล้อง"></select>
+        <button class="btn btn-primary" id="startBtn">เริ่มสแกน</button>
+        <button class="btn btn-light" id="stopBtn" disabled>หยุด</button>
+      </div>
+      <div id="reader"></div>
+      <div class="manual-box">
+        <input id="manualCode" type="text" placeholder="ทดสอบด้วยรหัส QR เช่น qr_code:subject_id">
+        <button class="btn btn-dark" id="manualBtn">บันทึก</button>
+      </div>
+    </div>
+  </section>
+
+  <aside class="panel">
+    <div class="panel-head">
+      <div>
+        <h3>ผลการสแกน</h3>
+        <p>แสดงชื่อนักเรียนและสีตามรายวิชา</p>
+      </div>
+    </div>
+    <div class="result empty" id="resultBox">
+      ยังไม่มีรายการสแกน
+    </div>
+  </aside>
+
+  <section class="panel">
+    <div class="panel-head">
+      <div>
+        <h3>รายการล่าสุด</h3>
+        <p>ประวัติการเข้า-ออกล่าสุด</p>
+      </div>
+    </div>
+    <div class="history-list" id="historyList">
+      <div class="history-item">
+        <div>
+          <div class="history-name">กำลังโหลด...</div>
+          <div class="history-sub">รอสักครู่</div>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script src="/js/config.js"></script>
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script type="module">
+import { requireAuth, logout } from '/js/auth.js'
+import { supabase } from '/js/supabase.js'
+
+const statusEl = document.getElementById('scanStatus')
+const resultEl = document.getElementById('resultBox')
+const historyEl = document.getElementById('historyList')
+const cameraSelect = document.getElementById('cameraSelect')
+const startBtn = document.getElementById('startBtn')
+const stopBtn = document.getElementById('stopBtn')
+const manualCode = document.getElementById('manualCode')
+const manualBtn = document.getElementById('manualBtn')
+
+let qrReader = null
+let currentCameraId = null
+let processing = false
+let scannerRunning = false
+let lastPayload = ''
+let lastScanAt = 0
+let toastTimer
+
+async function init() {
+  const session = await requireAuth()
+  document.getElementById('userEmail').textContent = session.user.email
+  document.getElementById('logoutBtn').addEventListener('click', logout)
+
+  startBtn.addEventListener('click', startScanner)
+  stopBtn.addEventListener('click', stopScanner)
+  manualBtn.addEventListener('click', () => processScan(manualCode.value, true))
+  manualCode.addEventListener('keydown', e => {
+    if (e.key === 'Enter') processScan(manualCode.value, true)
+  })
+
+  await loadCameras()
+  await loadHistory()
+}
+
+function cls(name = '') {
+  const n = name.toLowerCase()
+  if (n === 'math')      return 'math'
+  if (n === 'thai')      return 'thai'
+  if (n.includes('eng')) return 'english'
+  return 'default'
+}
+
+function fmtTime(value) {
+  if (!value) return '-'
+  return new Intl.DateTimeFormat('th-TH', {
+    hour: '2-digit',
+    minute: '2-digit',
+    day: '2-digit',
+    month: 'short'
+  }).format(new Date(value))
+}
+
+function toast(msg, type = 'ok') {
+  const el = document.getElementById('toast')
+  el.textContent = msg
+  el.className = `toast ${type} show`
+  clearTimeout(toastTimer)
+  toastTimer = setTimeout(() => el.classList.remove('show'), 3200)
+}
+
+async function loadCameras() {
+  if (!window.Html5Qrcode) {
+    cameraSelect.innerHTML = '<option>โหลดตัวอ่าน QR ไม่สำเร็จ</option>'
+    startBtn.disabled = true
+    showError('โหลดไลบรารีสแกน QR ไม่สำเร็จ กรุณาตรวจสอบอินเทอร์เน็ตหรือใช้ช่องทดสอบด้านล่าง')
+    return
+  }
+
+  try {
+    const cameras = await Html5Qrcode.getCameras()
+    if (!cameras.length) {
+      cameraSelect.innerHTML = '<option>ไม่พบกล้อง</option>'
+      startBtn.disabled = true
+      showError('ไม่พบกล้องบนอุปกรณ์นี้')
+      return
+    }
+
+    cameraSelect.innerHTML = cameras.map(cam =>
+      `<option value="${cam.id}">${cam.label || 'Camera'}</option>`
+    ).join('')
+
+    const backCamera = cameras.find(cam => /back|rear|environment/i.test(cam.label || ''))
+    currentCameraId = backCamera?.id || cameras[0].id
+    cameraSelect.value = currentCameraId
+    cameraSelect.addEventListener('change', async () => {
+      currentCameraId = cameraSelect.value
+      if (scannerRunning) {
+        await stopScanner()
+        await startScanner()
+      }
+    })
+
+    statusEl.textContent = 'เลือกกล้องแล้ว กดเริ่มสแกนเพื่อใช้งาน'
+  } catch (err) {
+    startBtn.disabled = true
+    showError('ไม่สามารถเปิดรายการกล้องได้: ' + err.message)
+  }
+}
+
+async function startScanner() {
+  if (!currentCameraId || !window.Html5Qrcode) return
+
+  try {
+    if (!qrReader) qrReader = new Html5Qrcode('reader')
+    await qrReader.start(
+      currentCameraId,
+      { fps: 10, qrbox: qrboxSize },
+      decodedText => processScan(decodedText, false),
+      () => {}
+    )
+    scannerRunning = true
+    startBtn.disabled = true
+    stopBtn.disabled = false
+    statusEl.textContent = 'กำลังสแกน...'
+  } catch (err) {
+    showError('เปิดกล้องไม่สำเร็จ: ' + err.message)
+  }
+}
+
+async function stopScanner() {
+  if (!qrReader || !scannerRunning) return
+  await qrReader.stop()
+  await qrReader.clear()
+  scannerRunning = false
+  startBtn.disabled = false
+  stopBtn.disabled = true
+  statusEl.textContent = 'หยุดสแกนแล้ว'
+}
+
+function qrboxSize(viewfinderWidth, viewfinderHeight) {
+  const edge = Math.floor(Math.min(viewfinderWidth, viewfinderHeight) * 0.78)
+  const size = Math.max(220, Math.min(edge, 320))
+  return { width: size, height: size }
+}
+
+function parsePayload(raw) {
+  const text = (raw || '').trim()
+  const [qrCode, subjectId, extra] = text.split(':')
+  if (!qrCode || !subjectId || extra) {
+    throw new Error('QR ไม่ถูกต้อง ต้องเป็นรูปแบบ qr_code:subject_id')
+  }
+  return { qrCode, subjectId }
+}
+
+async function processScan(raw, manual = false) {
+  const payload = (raw || '').trim()
+  const now = Date.now()
+  if (!payload) return
+  if (!manual && payload === lastPayload && now - lastScanAt < 8000) return
+  if (processing) return
+
+  processing = true
+  lastPayload = payload
+  lastScanAt = now
+  statusEl.textContent = 'กำลังบันทึก...'
+
+  try {
+    const { qrCode, subjectId } = parsePayload(payload)
+    const scanResult = await saveAttendance(qrCode, subjectId)
+    renderResult(scanResult)
+    toast(scanResult.action === 'in' ? 'บันทึกเข้าเรียนแล้ว' : 'บันทึกออกเรียนแล้ว')
+    manualCode.value = ''
+    await loadHistory()
+  } catch (err) {
+    showError(err.message)
+    toast(err.message, 'err')
+  } finally {
+    processing = false
+    statusEl.textContent = scannerRunning ? 'กำลังสแกน...' : 'พร้อมสแกน QR รายวิชา'
+  }
+}
+
+async function saveAttendance(qrCode, subjectId) {
+  const { data: student, error: studentErr } = await supabase
+    .from('students')
+    .select(`
+      id, name, nickname, line_user_id, qr_code,
+      student_subjects ( subject_id, subjects ( id, name, color ) )
+    `)
+    .eq('qr_code', qrCode)
+    .eq('is_active', true)
+    .maybeSingle()
+
+  if (studentErr) throw new Error('ค้นหานักเรียนไม่สำเร็จ: ' + studentErr.message)
+  if (!student) throw new Error('ไม่พบนักเรียนจาก QR นี้')
+
+  const enrollment = (student.student_subjects || []).find(row => row.subject_id === subjectId)
+  if (!enrollment?.subjects) throw new Error(`QR นี้ไม่ตรงกับวิชาที่ลงทะเบียนของ ${student.name}`)
+
+  const subject = enrollment.subjects
+  const { data: openLog, error: openErr } = await supabase
+    .from('attendance_logs')
+    .select('id, check_in_at')
+    .eq('student_id', student.id)
+    .eq('subject_id', subjectId)
+    .is('check_out_at', null)
+    .order('check_in_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  if (openErr) throw new Error('ตรวจสอบสถานะไม่สำเร็จ: ' + openErr.message)
+
+  const scannedAt = new Date()
+
+  if (openLog) {
+    const duration = Math.max(1, Math.round((scannedAt - new Date(openLog.check_in_at)) / 60000))
+    const { data, error } = await supabase
+      .from('attendance_logs')
+      .update({
+        check_out_at: scannedAt.toISOString(),
+        duration_minutes: duration,
+      })
+      .eq('id', openLog.id)
+      .select('id, check_in_at, check_out_at, duration_minutes')
+      .single()
+
+    if (error) throw new Error('บันทึกออกไม่สำเร็จ: ' + error.message)
+    return { action: 'out', student, subject, log: data }
+  }
+
+  const { data, error } = await supabase
+    .from('attendance_logs')
+    .insert({
+      student_id: student.id,
+      subject_id: subjectId,
+      check_in_at: scannedAt.toISOString(),
+    })
+    .select('id, check_in_at, check_out_at, duration_minutes')
+    .single()
+
+  if (error) throw new Error('บันทึกเข้าไม่สำเร็จ: ' + error.message)
+  return { action: 'in', student, subject, log: data }
+}
+
+function renderResult({ action, student, subject, log }) {
+  const theme = cls(subject.name)
+  const isIn = action === 'in'
+  resultEl.className = `result ${isIn ? 'in' : 'out'} ${theme}-theme`
+  resultEl.innerHTML = `
+    <div class="status-pill">${isIn ? 'เข้าเรียน' : 'ออกจากห้องเรียน'}</div>
+    <div class="student-name">${escapeHtml(student.name)}</div>
+    ${student.nickname ? `<div class="student-nick">ชื่อเล่น: ${escapeHtml(student.nickname)}</div>` : ''}
+    <div class="subject-badge ${theme}-badge">${escapeHtml(subject.name)}</div>
+    <div class="meta-grid">
+      <div class="meta">
+        <span>เวลาเข้า</span>
+        <strong>${fmtTime(log.check_in_at)}</strong>
+      </div>
+      <div class="meta">
+        <span>เวลาออก</span>
+        <strong>${log.check_out_at ? fmtTime(log.check_out_at) : 'กำลังเรียน'}</strong>
+      </div>
+      <div class="meta">
+        <span>ระยะเวลา</span>
+        <strong>${log.duration_minutes ? `${log.duration_minutes} นาที` : '-'}</strong>
+      </div>
+      <div class="meta">
+        <span>LINE ผู้ปกครอง</span>
+        <strong>${student.line_user_id ? 'มีข้อมูล' : 'ไม่มีข้อมูล'}</strong>
+      </div>
+    </div>
+  `
+}
+
+function showError(message) {
+  resultEl.className = 'result err default-theme'
+  resultEl.innerHTML = `
+    <div class="status-pill">ไม่สำเร็จ</div>
+    <div class="student-name">สแกนไม่ผ่าน</div>
+    <div class="student-nick">${escapeHtml(message)}</div>
+  `
+}
+
+async function loadHistory() {
+  const { data, error } = await supabase
+    .from('attendance_logs')
+    .select(`
+      id, check_in_at, check_out_at, duration_minutes,
+      students ( name, nickname ),
+      subjects ( name, color )
+    `)
+    .order('created_at', { ascending: false })
+    .limit(10)
+
+  if (error) {
+    historyEl.innerHTML = `
+      <div class="history-item">
+        <div>
+          <div class="history-name">โหลดรายการล่าสุดไม่สำเร็จ</div>
+          <div class="history-sub">${escapeHtml(error.message)}</div>
+        </div>
+      </div>`
+    return
+  }
+
+  if (!data?.length) {
+    historyEl.innerHTML = `
+      <div class="history-item">
+        <div>
+          <div class="history-name">ยังไม่มีประวัติ</div>
+          <div class="history-sub">รายการสแกนจะมาแสดงตรงนี้</div>
+        </div>
+      </div>`
+    return
+  }
+
+  historyEl.innerHTML = data.map(row => {
+    const subject = row.subjects?.name || '-'
+    const name = row.students?.nickname || row.students?.name || '-'
+    const action = row.check_out_at ? 'ออกแล้ว' : 'กำลังเรียน'
+    const time = row.check_out_at || row.check_in_at
+    return `
+      <div class="history-item">
+        <div>
+          <div class="history-name">${escapeHtml(name)}</div>
+          <div class="history-sub">${escapeHtml(subject)} · ${action}${row.duration_minutes ? ` · ${row.duration_minutes} นาที` : ''}</div>
+        </div>
+        <div class="history-time">${fmtTime(time)}</div>
+      </div>`
+  }).join('')
+}
+
+function escapeHtml(value) {
+  return String(value ?? '').replace(/[&<>"']/g, char => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#039;',
+  }[char]))
+}
+
+init()
+</script>
+
+</body>
+</html>

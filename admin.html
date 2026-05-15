@@ -530,6 +530,14 @@ function cls(name = '') {
   return 'default'
 }
 
+function qrDarkColor(name = '') {
+  const c = cls(name)
+  if (c === 'math')    return '#c2410c'
+  if (c === 'thai')    return '#6d28d9'
+  if (c === 'english') return '#1d4ed8'
+  return '#1a202c'
+}
+
 function closeModal(id) { document.getElementById(id).hidden = true }
 
 function setFormBusy(busy) {
@@ -803,7 +811,7 @@ window.openQR = async (studentId) => {
     if (!canvas) continue
     await QRCode.toCanvas(canvas, `${s.qr_code}:${ss.subjects.id}`, {
       width: 160, margin: 2,
-      color: { dark: '#1a202c', light: '#f8fafc' }
+      color: { dark: qrDarkColor(ss.subjects.name), light: '#f8fafc' }
     })
   }
 }
