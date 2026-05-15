@@ -535,6 +535,14 @@ function fmtTime(value) {
   }).format(new Date(value))
 }
 
+function subjectLabel(name = '') {
+  const c = cls(name)
+  if (c === 'math')    return 'MATH'
+  if (c === 'thai')    return 'THAI'
+  if (c === 'english') return 'ENG'
+  return name
+}
+
 function toast(msg, type = 'ok') {
   const el = document.getElementById('toast')
   el.textContent = msg
@@ -659,7 +667,7 @@ async function saveAttendance(qrCode, subjectId) {
   const { data: student, error: studentErr } = await supabase
     .from('students')
     .select(`
-      id, name, nickname, line_user_id, qr_code,
+      id, name, nickname, grade_level, qr_code,
       student_subjects ( subject_id, subjects ( id, name, color ) )
     `)
     .eq('qr_code', qrCode)
@@ -725,7 +733,8 @@ function renderResult({ action, student, subject, log }) {
     <div class="status-pill">${isIn ? 'เข้าเรียน' : 'ออกจากห้องเรียน'}</div>
     <div class="student-name">${escapeHtml(student.name)}</div>
     ${student.nickname ? `<div class="student-nick">ชื่อเล่น: ${escapeHtml(student.nickname)}</div>` : ''}
-    <div class="subject-badge ${theme}-badge">${escapeHtml(subject.name)}</div>
+    ${student.grade_level ? `<div class="student-nick">ระดับชั้น: ${escapeHtml(student.grade_level)}</div>` : ''}
+    <div class="subject-badge ${theme}-badge">${escapeHtml(subjectLabel(subject.name))}</div>
     <div class="meta-grid">
       <div class="meta">
         <span>เวลาเข้า</span>
@@ -740,8 +749,8 @@ function renderResult({ action, student, subject, log }) {
         <strong>${log.duration_minutes ? `${log.duration_minutes} นาที` : '-'}</strong>
       </div>
       <div class="meta">
-        <span>LINE ผู้ปกครอง</span>
-        <strong>${student.line_user_id ? 'มีข้อมูล' : 'ไม่มีข้อมูล'}</strong>
+        <span>ระดับชั้น</span>
+        <strong>${student.grade_level ? escapeHtml(student.grade_level) : '-'}</strong>
       </div>
     </div>
   `
@@ -761,7 +770,7 @@ async function loadHistory() {
     .from('attendance_logs')
     .select(`
       id, check_in_at, check_out_at, duration_minutes,
-      students ( name, nickname ),
+      students ( name, nickname, grade_level ),
       subjects ( name, color )
     `)
     .order('created_at', { ascending: false })
@@ -790,15 +799,16 @@ async function loadHistory() {
   }
 
   historyEl.innerHTML = data.map(row => {
-    const subject = row.subjects?.name || '-'
+    const subject = subjectLabel(row.subjects?.name || '-')
     const name = row.students?.nickname || row.students?.name || '-'
+    const grade = row.students?.grade_level ? ` · ${row.students.grade_level}` : ''
     const action = row.check_out_at ? 'ออกแล้ว' : 'กำลังเรียน'
     const time = row.check_out_at || row.check_in_at
     return `
       <div class="history-item">
         <div>
           <div class="history-name">${escapeHtml(name)}</div>
-          <div class="history-sub">${escapeHtml(subject)} · ${action}${row.duration_minutes ? ` · ${row.duration_minutes} นาที` : ''}</div>
+          <div class="history-sub">${escapeHtml(subject)}${escapeHtml(grade)} · ${action}${row.duration_minutes ? ` · ${row.duration_minutes} นาที` : ''}</div>
         </div>
         <div class="history-time">${fmtTime(time)}</div>
       </div>`

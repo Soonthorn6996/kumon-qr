@@ -12,7 +12,6 @@ create table if not exists public.students (
   name        text not null,
   nickname    text,
   photo_url   text,
-  line_user_id text,
   qr_code     text unique not null,
   is_active   boolean not null default true,
   created_at  timestamptz not null default now()
