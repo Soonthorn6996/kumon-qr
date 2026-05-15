@@ -4,7 +4,7 @@ import { supabase } from './supabase.js'
 export async function requireAuth() {
   const { data: { session } } = await supabase.auth.getSession()
   if (!session) {
-    window.location.href = '/login.html'
+    window.location.replace('/login.html')
   }
   return session
 }
@@ -14,7 +14,33 @@ export async function login(email, password) {
   return { data, error }
 }
 
-export async function logout() {
-  await supabase.auth.signOut()
-  window.location.href = '/login.html'
+function clearStoredAuth() {
+  for (const storage of [localStorage, sessionStorage]) {
+    Object.keys(storage).forEach(key => {
+      if (
+        key === 'supabase.auth.token' ||
+        key.includes('supabase.auth.token') ||
+        /^sb-.+-auth-token$/.test(key)
+      ) {
+        storage.removeItem(key)
+      }
+    })
+  }
+}
+
+export async function logout(event) {
+  event?.preventDefault?.()
+  event?.currentTarget?.setAttribute?.('disabled', 'true')
+
+  try {
+    await Promise.race([
+      supabase.auth.signOut(),
+      new Promise(resolve => setTimeout(resolve, 2500)),
+    ])
+  } catch (err) {
+    console.warn('Logout fallback:', err)
+  } finally {
+    clearStoredAuth()
+    window.location.replace('/login.html')
+  }
 }
