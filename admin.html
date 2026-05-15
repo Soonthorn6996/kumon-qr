@@ -249,32 +249,19 @@
       font-weight: 600; color: var(--navy); margin-bottom: 6px;
     }
 
-    .form-group input {
+    .form-group input,
+    .form-group select {
       width: 100%; padding: 10px 14px;
       border: 1.5px solid var(--border); border-radius: 10px;
       font-size: .95rem; color: var(--text); background: #f5fbff;
       transition: border-color .2s, box-shadow .2s;
     }
 
-    .form-group input:focus {
+    .form-group input:focus,
+    .form-group select:focus {
       outline: none; border-color: var(--blue); background: #fff;
       box-shadow: 0 0 0 3px rgba(91,164,207,.2);
     }
-
-    /* Subject toggle pills */
-    .subject-picks { display: flex; gap: 8px; flex-wrap: wrap; }
-
-    .pick-item {
-      display: flex; align-items: center; gap: 6px;
-      padding: 8px 14px; border: 2px solid var(--border); border-radius: 10px;
-      cursor: pointer; user-select: none; font-size: .85rem; font-weight: 600;
-      color: var(--muted); transition: all .15s;
-    }
-    .pick-item input[type=checkbox] { width: 15px; height: 15px; flex-shrink: 0; }
-
-    .pick-item.on-math    { border-color: var(--math-bd); background: var(--math-bg); color: var(--math-fg); }
-    .pick-item.on-thai    { border-color: var(--thai-bd); background: var(--thai-bg); color: var(--thai-fg); }
-    .pick-item.on-english { border-color: var(--eng-bd);  background: var(--eng-bg);  color: var(--eng-fg);  }
 
     .form-error {
       background: #fff7ed; border: 1px solid var(--math-bd); color: var(--math-fg);
@@ -419,8 +406,6 @@
       .qr-grid { gap: 12px; }
       .qr-card { min-width: 140px; padding: 14px 12px; }
 
-      .subject-picks { gap: 6px; }
-      .pick-item { padding: 7px 11px; font-size: .8rem; }
     }
 
     @media (min-width: 641px) and (max-width: 900px) {
@@ -511,12 +496,31 @@
       </div>
       <div class="form-group">
         <label>ระดับชั้นปี <span class="form-opt">(ไม่บังคับ)</span></label>
-        <input type="text" name="grade_level" placeholder="เช่น อ.3, ป.1, ป.6, ม.1">
+        <select name="grade_level">
+          <option value="">เลือกระดับชั้น</option>
+          <option value="อ.1">อ.1</option>
+          <option value="อ.2">อ.2</option>
+          <option value="อ.3">อ.3</option>
+          <option value="ป.1">ป.1</option>
+          <option value="ป.2">ป.2</option>
+          <option value="ป.3">ป.3</option>
+          <option value="ป.4">ป.4</option>
+          <option value="ป.5">ป.5</option>
+          <option value="ป.6">ป.6</option>
+          <option value="ม.1">ม.1</option>
+          <option value="ม.2">ม.2</option>
+          <option value="ม.3">ม.3</option>
+          <option value="ม.4">ม.4</option>
+          <option value="ม.5">ม.5</option>
+          <option value="ม.6">ม.6</option>
+        </select>
         <p class="form-hint">ใช้แสดงบนรายชื่อนักเรียนและประวัติสแกน</p>
       </div>
       <div class="form-group">
-        <label>วิชาที่ลงทะเบียน</label>
-        <div class="subject-picks" id="subjectPicks"></div>
+        <label>วิชาที่ลงทะเบียน *</label>
+        <select name="subject_id" id="subjectSelect" required>
+          <option value="">กำลังโหลดวิชา...</option>
+        </select>
       </div>
       <div class="form-error" id="addError"></div>
       <button type="submit" class="btn-submit" id="addSubmit">บันทึก</button>
@@ -549,6 +553,11 @@ import { supabase } from '/js/supabase.js'
 let subjects  = []
 let students  = []
 let editingId = null   // null = add mode, uuid = edit mode
+const DEFAULT_SUBJECTS = [
+  { name: 'MATH', color: 'red' },
+  { name: 'THAI', color: 'green' },
+  { name: 'ENG',  color: 'blue' },
+]
 
 // ── Init ─────────────────────────────────────────────────────
 
@@ -567,7 +576,7 @@ async function init() {
   })
 
   await loadSubjects()
-  buildSubjectPicks()
+  buildSubjectSelect()
   await loadStudents()
 }
 
@@ -586,10 +595,32 @@ function toast(msg, type = 'ok') {
 
 async function loadSubjects() {
   const { data, error } = await supabase.from('subjects').select('*').order('name')
-  if (error) { toast('โหลดวิชาไม่สำเร็จ: ' + error.message, 'err'); return }
-  subjects = (data || []).sort((a, b) =>
-    subjectRank(a.name) - subjectRank(b.name) || a.name.localeCompare(b.name)
+  if (error) {
+    subjects = []
+    buildSubjectSelect('โหลดวิชาไม่สำเร็จ')
+    toast('โหลดวิชาไม่สำเร็จ: ' + error.message, 'err')
+    return
+  }
+
+  subjects = normalizeSubjectList(data || [])
+
+  const missingSubjects = DEFAULT_SUBJECTS.filter(defaultSubject =>
+    !subjects.some(s => cls(s.name) === cls(defaultSubject.name))
   )
+
+  if (missingSubjects.length) {
+    const { error: insertErr } = await supabase.from('subjects').insert(missingSubjects)
+    if (insertErr) {
+      toast('สร้างวิชาเริ่มต้นไม่สำเร็จ: ' + insertErr.message, 'err')
+    } else {
+      const { data: refreshed, error: refreshErr } = await supabase.from('subjects').select('*').order('name')
+      if (refreshErr) {
+        toast('โหลดวิชาหลังสร้างไม่สำเร็จ: ' + refreshErr.message, 'err')
+      } else {
+        subjects = normalizeSubjectList(refreshed || [])
+      }
+    }
+  }
 }
 
 async function loadStudents() {
@@ -631,6 +662,19 @@ function subjectRank(name = '') {
   if (c === 'thai')    return 2
   if (c === 'english') return 3
   return 99
+}
+
+function normalizeSubjectList(list) {
+  const bySubject = new Map()
+  list.forEach(s => {
+    const key = cls(s.name)
+    if (!bySubject.has(key) || subjectRank(s.name) < subjectRank(bySubject.get(key).name)) {
+      bySubject.set(key, s)
+    }
+  })
+  return [...bySubject.values()].sort((a, b) =>
+    subjectRank(a.name) - subjectRank(b.name) || a.name.localeCompare(b.name)
+  )
 }
 
 function qrDarkColor(name = '') {
@@ -706,33 +750,32 @@ function renderStudents() {
   }).join('')
 }
 
-// ── Subject Picks (checkbox pills) ───────────────────────────
+// ── Subject Dropdown ─────────────────────────────────────────
 
-function buildSubjectPicks() {
-  document.getElementById('subjectPicks').innerHTML = subjects.map(s => {
-    const c = cls(s.name)
-    return `
-      <label class="pick-item" id="pick-${s.id}">
-        <input type="checkbox" name="subjects" value="${s.id}"
-          onchange="togglePick('${s.id}','${c}')">
-        <span>${subjectLabel(s.name)}</span>
-      </label>`
-  }).join('')
+function buildSubjectSelect(errorText = '') {
+  const select = document.getElementById('subjectSelect')
+  if (errorText) {
+    select.innerHTML = `<option value="">${errorText}</option>`
+    select.disabled = true
+    return
+  }
+
+  if (!subjects.length) {
+    select.innerHTML = '<option value="">ไม่พบวิชาในฐานข้อมูล</option>'
+    select.disabled = true
+    return
+  }
+
+  select.disabled = false
+  select.innerHTML = `
+    <option value="">เลือกวิชา</option>
+    ${subjects.map(s => `<option value="${s.id}">${subjectLabel(s.name)}</option>`).join('')}
+  `
 }
 
-window.togglePick = (id, c) => {
-  const label = document.getElementById(`pick-${id}`)
-  label.className = `pick-item${label.querySelector('input').checked ? ` on-${c}` : ''}`
-}
-
-function resetPicksTo(selectedIds = []) {
-  subjects.forEach(s => {
-    const label = document.getElementById(`pick-${s.id}`)
-    if (!label) return
-    const cb = label.querySelector('input')
-    cb.checked      = selectedIds.includes(s.id)
-    label.className = `pick-item${cb.checked ? ` on-${cls(s.name)}` : ''}`
-  })
+function setSubjectTo(subjectId = '') {
+  const select = document.getElementById('subjectSelect')
+  select.value = subjectId || ''
 }
 
 // ── Open Add Modal ───────────────────────────────────────────
@@ -740,7 +783,7 @@ function resetPicksTo(selectedIds = []) {
 function openAdd() {
   editingId = null
   document.getElementById('addForm').reset()
-  resetPicksTo()
+  setSubjectTo()
   document.getElementById('addError').style.display   = 'none'
   document.getElementById('modal-title').textContent  = 'เพิ่มนักเรียน'
   document.getElementById('modal-sub').textContent    = 'กรอกข้อมูลและเลือกวิชา'
@@ -765,7 +808,7 @@ window.openEdit = (studentId) => {
   form.elements['grade_level'].value  = s.grade_level || ''
 
   const enrolledIds = (s.student_subjects || []).map(ss => ss.subject_id)
-  resetPicksTo(enrolledIds)
+  setSubjectTo(enrolledIds[0] || '')
 
   document.getElementById('addError').style.display  = 'none'
   document.getElementById('modal-title').textContent = 'แก้ไขข้อมูลนักเรียน'
@@ -787,10 +830,18 @@ async function submitForm(e) {
   const name         = (fd.get('name')         || '').trim()
   const nickname     = (fd.get('nickname')     || '').trim()
   const grade_level  = (fd.get('grade_level')  || '').trim()
-  const selected     = fd.getAll('subjects')
+  const subject_id   = (fd.get('subject_id')   || '').trim()
+  const selected     = subject_id ? [subject_id] : []
 
   if (!name) {
     errEl.textContent   = 'กรุณาใส่ชื่อจริง'
+    errEl.style.display = 'block'
+    setFormBusy(false)
+    return
+  }
+
+  if (!subject_id) {
+    errEl.textContent   = 'กรุณาเลือกวิชา'
     errEl.style.display = 'block'
     setFormBusy(false)
     return
