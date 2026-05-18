@@ -49,7 +49,7 @@ SUPABASE_URL
 SUPABASE_ANON_KEY
 ```
 
-`scripts/build-config.js` is only a helper. It must not make Vercel deploy fail if env vars are absent.
+`scripts/build-config.js` is only a local helper. It is intentionally not wired to `package.json` because Vercel should not generate a static `js/config.js`; `/js/config.js` must be served through the rewrite to `/api/config`.
 
 ## Page Pattern
 
@@ -178,5 +178,4 @@ If Vercel deploy fails, first check:
 - `vercel.json`
 - `api/config.js`
 - whether `SUPABASE_URL` and `SUPABASE_ANON_KEY` exist in Vercel
-- whether `npm run build` exits successfully
-
+- whether a static generated `js/config.js` accidentally exists in the deployment output
