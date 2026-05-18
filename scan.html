@@ -435,13 +435,13 @@
     <div class="scanner-body">
       <div class="camera-row">
         <select id="cameraSelect" aria-label="เลือกกล้อง"></select>
-        <button class="btn btn-primary" id="startBtn">เริ่มสแกน</button>
-        <button class="btn btn-light" id="stopBtn" disabled>หยุด</button>
+        <button type="button" class="btn btn-primary" id="startBtn">เริ่มสแกน</button>
+        <button type="button" class="btn btn-light" id="stopBtn" disabled>หยุด</button>
       </div>
       <div id="reader"></div>
       <div class="manual-box">
         <input id="manualCode" type="text" placeholder="ทดสอบด้วยรหัส QR เช่น qr_code:subject_id">
-        <button class="btn btn-dark" id="manualBtn">บันทึก</button>
+        <button type="button" class="btn btn-dark" id="manualBtn">บันทึก</button>
       </div>
     </div>
   </section>
@@ -503,6 +503,8 @@ let toastTimer
 
 async function init() {
   const session = await requireAuth()
+  if (!session) return
+
   document.getElementById('userEmail').textContent = session.user.email
   document.getElementById('logoutBtn').addEventListener('click', logout)
 

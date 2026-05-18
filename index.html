@@ -217,6 +217,8 @@
   import { requireAuth, logout } from '/js/auth.js'
 
   const session = await requireAuth()
+  if (!session) return
+
   document.getElementById('userEmail').textContent = session.user.email
   document.getElementById('logoutBtn').addEventListener('click', logout)
 </script>
