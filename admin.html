@@ -519,7 +519,10 @@
       <div class="form-group">
         <label>วิชาที่ลงทะเบียน *</label>
         <select name="subject_id" id="subjectSelect" required>
-          <option value="">กำลังโหลดวิชา...</option>
+          <option value="">เลือกวิชา</option>
+          <option value="MATH">MATH</option>
+          <option value="THAI">THAI</option>
+          <option value="ENG">ENG</option>
         </select>
       </div>
       <div class="form-error" id="addError"></div>
@@ -550,14 +553,9 @@
 import { requireAuth, logout } from '/js/auth.js'
 import { supabase } from '/js/supabase.js'
 
-let subjects  = []
 let students  = []
 let editingId = null   // null = add mode, uuid = edit mode
-const DEFAULT_SUBJECTS = [
-  { name: 'MATH', color: 'red' },
-  { name: 'THAI', color: 'green' },
-  { name: 'ENG',  color: 'blue' },
-]
+const subjectIdCache = {}  // { 'MATH': uuid, 'THAI': uuid, 'ENG': uuid }
 
 // ── Init ─────────────────────────────────────────────────────
 
@@ -577,7 +575,6 @@ async function init() {
     el.addEventListener('click', e => { if (e.target === el) el.hidden = true })
   })
 
-  await loadSubjects()
   await loadStudents()
 }
 
@@ -594,37 +591,33 @@ function toast(msg, type = 'ok') {
 
 // ── Load Data ────────────────────────────────────────────────
 
-async function loadSubjects() {
-  const { data, error } = await supabase.from('subjects').select('*').order('name')
-  if (error) {
-    subjects = []
-    console.error('loadSubjects fetch error:', error)
-    toast('โหลดวิชาไม่สำเร็จ: ' + error.message, 'err')
-    buildSubjectSelect()
-    return
+// หา UUID ของวิชาจากชื่อ — ถ้าไม่มีในตาราง จะสร้างให้อัตโนมัติ
+async function resolveSubjectId(name) {
+  const key = name.toUpperCase()
+  if (subjectIdCache[key]) return subjectIdCache[key]
+
+  const { data } = await supabase
+    .from('subjects')
+    .select('id')
+    .ilike('name', key)
+    .maybeSingle()
+
+  if (data?.id) {
+    subjectIdCache[key] = data.id
+    return data.id
   }
 
-  subjects = normalizeSubjectList(data || [])
-  buildSubjectSelect()  // แสดง dropdown ทันทีโดยไม่รอ upsert
+  // สร้างวิชาใหม่ถ้าไม่มี
+  const colorMap = { MATH: 'red', THAI: 'green', ENG: 'blue' }
+  const { data: created, error } = await supabase
+    .from('subjects')
+    .insert({ name: key, color: colorMap[key] || 'blue' })
+    .select('id')
+    .single()
 
-  const missingSubjects = DEFAULT_SUBJECTS.filter(defaultSubject =>
-    !subjects.some(s => cls(s.name) === cls(defaultSubject.name))
-  )
-
-  if (missingSubjects.length) {
-    const { error: upsertErr } = await supabase
-      .from('subjects')
-      .upsert(missingSubjects, { ignoreDuplicates: true })
-    if (upsertErr) {
-      console.error('loadSubjects upsert error:', upsertErr)
-    } else {
-      const { data: refreshed } = await supabase.from('subjects').select('*').order('name')
-      if (refreshed) {
-        subjects = normalizeSubjectList(refreshed)
-        buildSubjectSelect()
-      }
-    }
-  }
+  if (error) { console.error('resolveSubjectId create error:', error); return null }
+  subjectIdCache[key] = created.id
+  return created.id
 }
 
 async function loadStudents() {
@@ -658,27 +651,6 @@ function subjectLabel(name = '') {
   if (c === 'thai')    return 'THAI'
   if (c === 'english') return 'ENG'
   return name
-}
-
-function subjectRank(name = '') {
-  const c = cls(name)
-  if (c === 'math')    return 1
-  if (c === 'thai')    return 2
-  if (c === 'english') return 3
-  return 99
-}
-
-function normalizeSubjectList(list) {
-  const bySubject = new Map()
-  list.forEach(s => {
-    const key = cls(s.name)
-    if (!bySubject.has(key) || subjectRank(s.name) < subjectRank(bySubject.get(key).name)) {
-      bySubject.set(key, s)
-    }
-  })
-  return [...bySubject.values()].sort((a, b) =>
-    subjectRank(a.name) - subjectRank(b.name) || a.name.localeCompare(b.name)
-  )
 }
 
 function qrDarkColor(name = '') {
@@ -754,32 +726,11 @@ function renderStudents() {
   }).join('')
 }
 
-// ── Subject Dropdown ─────────────────────────────────────────
+// ── Subject Select ───────────────────────────────────────────
 
-function buildSubjectSelect(errorText = '') {
-  const select = document.getElementById('subjectSelect')
-  if (errorText) {
-    select.innerHTML = `<option value="">${errorText}</option>`
-    select.disabled = true
-    return
-  }
-
-  if (!subjects.length) {
-    select.innerHTML = '<option value="">ไม่พบวิชาในฐานข้อมูล</option>'
-    select.disabled = true
-    return
-  }
-
-  select.disabled = false
-  select.innerHTML = `
-    <option value="">เลือกวิชา</option>
-    ${subjects.map(s => `<option value="${s.id}">${subjectLabel(s.name)}</option>`).join('')}
-  `
-}
-
-function setSubjectTo(subjectId = '') {
-  const select = document.getElementById('subjectSelect')
-  select.value = subjectId || ''
+// ตั้งค่า select ด้วยชื่อวิชา (MATH / THAI / ENG)
+function setSubjectTo(name = '') {
+  document.getElementById('subjectSelect').value = subjectLabel(name)
 }
 
 // ── Open Add Modal ───────────────────────────────────────────
@@ -811,8 +762,8 @@ window.openEdit = (studentId) => {
   form.elements['nickname'].value     = s.nickname    || ''
   form.elements['grade_level'].value  = s.grade_level || ''
 
-  const enrolledIds = (s.student_subjects || []).map(ss => ss.subject_id)
-  setSubjectTo(enrolledIds[0] || '')
+  const enrolledSubject = (s.student_subjects || [])[0]?.subjects
+  setSubjectTo(enrolledSubject?.name || '')
 
   document.getElementById('addError').style.display  = 'none'
   document.getElementById('modal-title').textContent = 'แก้ไขข้อมูลนักเรียน'
@@ -830,12 +781,11 @@ async function submitForm(e) {
   setFormBusy(true)
 
   // ใช้ FormData — หลีกเลี่ยง e.target.name ที่ชนกับ form property
-  const fd           = new FormData(e.target)
-  const name         = (fd.get('name')         || '').trim()
-  const nickname     = (fd.get('nickname')     || '').trim()
-  const grade_level  = (fd.get('grade_level')  || '').trim()
-  const subject_id   = (fd.get('subject_id')   || '').trim()
-  const selected     = subject_id ? [subject_id] : []
+  const fd            = new FormData(e.target)
+  const name          = (fd.get('name')         || '').trim()
+  const nickname      = (fd.get('nickname')     || '').trim()
+  const grade_level   = (fd.get('grade_level')  || '').trim()
+  const subjectName   = (fd.get('subject_id')   || '').trim()  // 'MATH' | 'THAI' | 'ENG'
 
   if (!name) {
     errEl.textContent   = 'กรุณาใส่ชื่อจริง'
@@ -844,12 +794,22 @@ async function submitForm(e) {
     return
   }
 
-  if (!subject_id) {
+  if (!subjectName) {
     errEl.textContent   = 'กรุณาเลือกวิชา'
     errEl.style.display = 'block'
     setFormBusy(false)
     return
   }
+
+  const subjectId = await resolveSubjectId(subjectName)
+  if (!subjectId) {
+    errEl.textContent   = 'บันทึกวิชาไม่สำเร็จ — กรุณาตรวจสอบการเชื่อมต่อ'
+    errEl.style.display = 'block'
+    setFormBusy(false)
+    return
+  }
+
+  const selected = [subjectId]
 
   if (editingId) {
     await doUpdate(editingId, { name, nickname, grade_level, selected })
