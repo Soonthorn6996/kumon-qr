@@ -1,3 +1,5 @@
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm'
 
-export const supabase = createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY)
+const runtimeConfig = window.CONFIG || CONFIG
+
+export const supabase = createClient(runtimeConfig.SUPABASE_URL, runtimeConfig.SUPABASE_ANON_KEY)

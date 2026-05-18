@@ -1,5 +1,9 @@
 {
-  "buildCommand": "node scripts/build-config.js",
-  "outputDirectory": ".",
-  "cleanUrls": true
+  "cleanUrls": true,
+  "rewrites": [
+    {
+      "source": "/js/config.js",
+      "destination": "/api/config"
+    }
+  ]
 }
