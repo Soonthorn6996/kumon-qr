@@ -458,8 +458,8 @@
       <p id="studentCount">กำลังโหลด...</p>
     </div>
     <div class="header-actions">
-      <button class="btn-secondary" id="qrAllBtn">📱 สร้าง QR ทั้งหมด</button>
-      <button class="btn-add" id="addBtn">+ เพิ่มนักเรียน</button>
+      <button type="button" class="btn-secondary" id="qrAllBtn">📱 สร้าง QR ทั้งหมด</button>
+      <button type="button" class="btn-add" id="addBtn">+ เพิ่มนักเรียน</button>
     </div>
   </div>
 </div>
@@ -482,7 +482,7 @@
         <h3 id="modal-title">เพิ่มนักเรียน</h3>
         <p id="modal-sub">กรอกข้อมูลและเลือกวิชา</p>
       </div>
-      <button class="btn-close" id="closeAdd">✕</button>
+      <button type="button" class="btn-close" id="closeAdd">✕</button>
     </div>
 
     <form id="addForm">
@@ -536,7 +536,7 @@
         <h3 id="qrTitle">QR Code</h3>
         <p id="qrSub">สร้างจากรายชื่อที่ active อยู่ในฐานข้อมูล</p>
       </div>
-      <button class="btn-hide" id="hideQR">ซ่อน</button>
+      <button type="button" class="btn-hide" id="hideQR">ซ่อน</button>
     </div>
     <div class="qr-grid" id="qrGrid"></div>
   </div>
@@ -563,6 +563,8 @@ const DEFAULT_SUBJECTS = [
 
 async function init() {
   const session = await requireAuth()
+  if (!session) return
+
   document.getElementById('userEmail').textContent = session.user.email
   document.getElementById('logoutBtn').addEventListener('click', logout)
   document.getElementById('addBtn').addEventListener('click', openAdd)
@@ -576,7 +578,6 @@ async function init() {
   })
 
   await loadSubjects()
-  buildSubjectSelect()
   await loadStudents()
 }
 
@@ -599,10 +600,12 @@ async function loadSubjects() {
     subjects = []
     console.error('loadSubjects fetch error:', error)
     toast('โหลดวิชาไม่สำเร็จ: ' + error.message, 'err')
+    buildSubjectSelect()
     return
   }
 
   subjects = normalizeSubjectList(data || [])
+  buildSubjectSelect()  // แสดง dropdown ทันทีโดยไม่รอ upsert
 
   const missingSubjects = DEFAULT_SUBJECTS.filter(defaultSubject =>
     !subjects.some(s => cls(s.name) === cls(defaultSubject.name))
@@ -614,13 +617,11 @@ async function loadSubjects() {
       .upsert(missingSubjects, { ignoreDuplicates: true })
     if (upsertErr) {
       console.error('loadSubjects upsert error:', upsertErr)
-      toast('สร้างวิชาเริ่มต้นไม่สำเร็จ: ' + upsertErr.message, 'err')
     } else {
-      const { data: refreshed, error: refreshErr } = await supabase.from('subjects').select('*').order('name')
-      if (refreshErr) {
-        console.error('loadSubjects refresh error:', refreshErr)
-      } else {
-        subjects = normalizeSubjectList(refreshed || [])
+      const { data: refreshed } = await supabase.from('subjects').select('*').order('name')
+      if (refreshed) {
+        subjects = normalizeSubjectList(refreshed)
+        buildSubjectSelect()
       }
     }
   }
