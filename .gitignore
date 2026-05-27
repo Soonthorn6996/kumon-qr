@@ -9,6 +9,7 @@ js/config.js
 
 # Supabase
 .supabase/
+supabase/local_imports/
 
 # OS
 .DS_Store

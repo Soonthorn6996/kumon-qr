@@ -133,6 +133,77 @@
     }
     .btn-secondary:hover { background: #dbeafe; }
 
+    .list-tools {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 18px 16px 0;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .search-box {
+      position: relative;
+      min-width: 0;
+    }
+
+    .search-box input {
+      width: 100%;
+      height: 42px;
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      background: #fff;
+      color: var(--text);
+      font-size: .95rem;
+      padding: 0 42px 0 42px;
+      box-shadow: 0 2px 10px rgba(26,74,110,.06);
+      transition: border-color .2s, box-shadow .2s;
+    }
+
+    .search-box input:focus {
+      outline: none;
+      border-color: var(--blue);
+      box-shadow: 0 0 0 3px rgba(91,164,207,.2);
+    }
+
+    .search-icon {
+      position: absolute;
+      left: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--muted);
+      font-size: .95rem;
+      pointer-events: none;
+    }
+
+    .clear-search {
+      position: absolute;
+      right: 8px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 28px;
+      height: 28px;
+      border: none;
+      border-radius: 7px;
+      background: #f1f5f9;
+      color: var(--muted);
+      cursor: pointer;
+      font-size: .8rem;
+      display: none;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .clear-search.show { display: flex; }
+    .clear-search:hover { color: var(--navy); background: #e2e8f0; }
+
+    .result-count {
+      color: var(--muted);
+      font-size: .82rem;
+      white-space: nowrap;
+    }
+
     /* ── Student Grid ────────────────────────────────── */
     .container { max-width: 1100px; margin: 0 auto; padding: 24px 16px; }
 
@@ -297,7 +368,14 @@
       border: 2px solid var(--border); min-width: 170px;
     }
 
-    .qr-card canvas { border-radius: 6px; display: block; margin: 0 auto; }
+    .qr-card img {
+      width: 160px;
+      height: 160px;
+      border-radius: 6px;
+      display: block;
+      margin: 0 auto;
+      image-rendering: pixelated;
+    }
 
     .qr-sub  { font-weight: 700; font-size: .95rem; margin-top: 10px; }
     .qr-name { color: var(--muted); font-size: .78rem; margin-top: 3px; }
@@ -368,6 +446,14 @@
     }
     .btn-hide:hover { background: #e2e8f0; color: var(--navy); }
 
+    .qr-actions {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
     /* ── Toast ───────────────────────────────────────── */
     .toast {
       position: fixed; bottom: 24px; right: 20px;
@@ -393,6 +479,12 @@
 
       .page-top-inner { flex-wrap: wrap; gap: 10px; }
       .page-top h2 { font-size: 1.05rem; }
+
+      .list-tools {
+        grid-template-columns: 1fr;
+        padding-top: 14px;
+      }
+      .result-count { padding-left: 2px; }
 
       .student-grid { grid-template-columns: 1fr; }
 
@@ -420,10 +512,16 @@
     @media print {
       .nav-right,
       .page-top,
+      .list-tools,
       .container,
       .modal-overlay,
-      .btn-hide {
+      .qr-actions,
+      .btn-hide,
+      .app-version-badge {
         display: none !important;
+      }
+      body {
+        background: white !important;
       }
       .qr-section {
         display: block !important;
@@ -436,7 +534,23 @@
         border: none;
         padding: 0;
       }
-      .qr-grid { justify-content: flex-start; }
+      .qr-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+        justify-content: flex-start;
+      }
+      .qr-card {
+        break-inside: avoid;
+        page-break-inside: avoid;
+        border-color: #cbd5e1 !important;
+        background: white !important;
+        min-width: 0;
+      }
+      .qr-card img {
+        print-color-adjust: exact;
+        -webkit-print-color-adjust: exact;
+      }
     }
   </style>
 </head>
@@ -470,6 +584,15 @@
 </div>
 
 <!-- ── Student Grid ── -->
+<section class="list-tools" aria-label="ค้นหารายชื่อนักเรียน">
+  <div class="search-box">
+    <span class="search-icon">🔎</span>
+    <input type="search" id="studentSearch" placeholder="ค้นหาชื่อนักเรียน ชื่อเล่น ชั้น หรือวิชา" autocomplete="off">
+    <button type="button" class="clear-search" id="clearSearch" title="ล้างคำค้น">✕</button>
+  </div>
+  <div class="result-count" id="resultCount"></div>
+</section>
+
 <div class="container">
   <div class="student-grid" id="studentGrid">
     <div class="state-box">
@@ -544,7 +667,10 @@
         <h3 id="qrTitle">QR Code</h3>
         <p id="qrSub">สร้างจากรายชื่อที่ active อยู่ในฐานข้อมูล</p>
       </div>
-      <button type="button" class="btn-hide" id="hideQR">ซ่อน</button>
+      <div class="qr-actions">
+        <button type="button" class="btn-print" id="printQR">พิมพ์ QR</button>
+        <button type="button" class="btn-hide" id="hideQR">ซ่อน</button>
+      </div>
     </div>
     <div class="qr-grid" id="qrGrid"></div>
   </div>
@@ -561,6 +687,7 @@ import { supabase } from '/js/supabase.js'
 let students  = []
 let editingId = null   // null = add mode, uuid = edit mode
 let supportsGradeLevel = true
+let searchTerm = ''
 const subjectIdCache = {}  // { 'MATH': uuid, 'THAI': uuid, 'ENG': uuid }
 
 // ── Init ─────────────────────────────────────────────────────
@@ -575,7 +702,23 @@ async function init() {
   document.getElementById('qrAllBtn').addEventListener('click', openAllQR)
   document.getElementById('closeAdd').addEventListener('click', () => closeModal('addModal'))
   document.getElementById('hideQR').addEventListener('click', hideQR)
+  document.getElementById('printQR').addEventListener('click', printQR)
   document.getElementById('addForm').addEventListener('submit', submitForm)
+
+  const searchInput = document.getElementById('studentSearch')
+  const clearSearch = document.getElementById('clearSearch')
+  searchInput.addEventListener('input', () => {
+    searchTerm = searchInput.value.trim().toLowerCase()
+    clearSearch.classList.toggle('show', Boolean(searchTerm))
+    renderStudents()
+  })
+  clearSearch.addEventListener('click', () => {
+    searchInput.value = ''
+    searchTerm = ''
+    clearSearch.classList.remove('show')
+    searchInput.focus()
+    renderStudents()
+  })
 
   document.querySelectorAll('.modal-overlay').forEach(el => {
     el.addEventListener('click', e => { if (e.target === el) el.hidden = true })
@@ -695,6 +838,23 @@ function normalizeStudentSubjects(subjectRows = []) {
     })
 }
 
+function studentSearchText(student) {
+  const subjects = normalizeStudentSubjects(student.student_subjects || [])
+    .map(row => subjectLabel(row.subjects.name))
+    .join(' ')
+  return [
+    student.name,
+    student.nickname,
+    student.grade_level,
+    subjects,
+  ].filter(Boolean).join(' ').toLowerCase()
+}
+
+function filteredStudents() {
+  if (!searchTerm) return students
+  return students.filter(student => studentSearchText(student).includes(searchTerm))
+}
+
 function qrDarkColor(name = '') {
   const c = cls(name)
   if (c === 'math')    return '#c2410c'
@@ -726,7 +886,12 @@ function setFormBusy(busy) {
 function renderStudents() {
   const grid  = document.getElementById('studentGrid')
   const count = document.getElementById('studentCount')
+  const resultCount = document.getElementById('resultCount')
+  const visibleStudents = filteredStudents()
   count.textContent = `${students.length} คน`
+  resultCount.textContent = searchTerm
+    ? `พบ ${visibleStudents.length} จาก ${students.length} คน`
+    : `ทั้งหมด ${students.length} คน`
 
   if (!students.length) {
     grid.innerHTML = `
@@ -737,7 +902,16 @@ function renderStudents() {
     return
   }
 
-  grid.innerHTML = students.map(s => {
+  if (!visibleStudents.length) {
+    grid.innerHTML = `
+      <div class="state-box">
+        <div class="icon">🔎</div>
+        <p>ไม่พบนักเรียนที่ตรงกับคำค้น</p>
+      </div>`
+    return
+  }
+
+  grid.innerHTML = visibleStudents.map(s => {
     const subs    = normalizeStudentSubjects(s.student_subjects || [])
     const displayName = s.name || '-'
     const displayNick = s.nickname || ''
@@ -995,7 +1169,7 @@ window.openQR = async (studentId) => {
     const c = cls(ss.subjects.name)
     return `
       <div class="qr-card ${c}">
-        <canvas id="qr-${ss.subjects.id}"></canvas>
+        <img id="qr-${ss.subjects.id}" alt="QR ${escapeHtml(subjectLabel(ss.subjects.name))} ${escapeHtml(s.name)}">
         <div class="qr-sub">${escapeHtml(subjectLabel(ss.subjects.name))}</div>
         <div class="qr-name">${escapeHtml(s.nickname || s.name)}</div>
         ${s.grade_level ? `<div class="qr-name">${escapeHtml(s.grade_level)}</div>` : ''}
@@ -1005,9 +1179,9 @@ window.openQR = async (studentId) => {
   showQRSection()
 
   for (const ss of subs) {
-    const canvas = document.getElementById(`qr-${ss.subjects.id}`)
-    if (!canvas) continue
-    await QRCode.toCanvas(canvas, `${s.qr_code}:${ss.subjects.id}`, {
+    const img = document.getElementById(`qr-${ss.subjects.id}`)
+    if (!img) continue
+    img.src = await QRCode.toDataURL(`${s.qr_code}:${ss.subjects.id}`, {
       width: 160, margin: 2,
       color: { dark: qrDarkColor(ss.subjects.name), light: '#f8fafc' }
     })
@@ -1018,7 +1192,7 @@ async function openAllQR() {
   if (!students.length) await loadStudents()
 
   const entries = []
-  students.forEach(s => {
+  filteredStudents().forEach(s => {
     const enrolledSubjects = normalizeStudentSubjects(s.student_subjects || [])
     enrolledSubjects.forEach(ss => {
       if (!ss.subjects) return
@@ -1039,12 +1213,14 @@ async function openAllQR() {
     return
   }
 
-  sub.textContent = `${students.length} คน · ${entries.length} QR Code`
+  sub.textContent = searchTerm
+    ? `ผลค้นหา ${filteredStudents().length} จาก ${students.length} คน · ${entries.length} QR Code`
+    : `${students.length} คน · ${entries.length} QR Code`
   grid.innerHTML = entries.map((entry, index) => {
     const c = cls(entry.subject.name)
     return `
       <div class="qr-card ${c}">
-        <canvas id="qr-all-${index}"></canvas>
+        <img id="qr-all-${index}" alt="QR ${escapeHtml(subjectLabel(entry.subject.name))} ${escapeHtml(entry.student.name)}">
         <div class="qr-sub">${escapeHtml(subjectLabel(entry.subject.name))}</div>
         <div class="qr-name">${escapeHtml(entry.student.nickname || entry.student.name)}</div>
         ${entry.student.grade_level ? `<div class="qr-name">${escapeHtml(entry.student.grade_level)}</div>` : ''}
@@ -1054,9 +1230,9 @@ async function openAllQR() {
   showQRSection()
 
   for (const [index, entry] of entries.entries()) {
-    const canvas = document.getElementById(`qr-all-${index}`)
-    if (!canvas) continue
-    await QRCode.toCanvas(canvas, `${entry.student.qr_code}:${entry.subject.id}`, {
+    const img = document.getElementById(`qr-all-${index}`)
+    if (!img) continue
+    img.src = await QRCode.toDataURL(`${entry.student.qr_code}:${entry.subject.id}`, {
       width: 160, margin: 2,
       color: { dark: qrDarkColor(entry.subject.name), light: '#f8fafc' }
     })
@@ -1071,6 +1247,16 @@ function showQRSection() {
 
 function hideQR() {
   document.getElementById('qrSection').hidden = true
+}
+
+function printQR() {
+  const section = document.getElementById('qrSection')
+  const hasQR = section && !section.hidden && document.querySelector('#qrGrid img')
+  if (!hasQR) {
+    toast('กรุณาสร้าง QR ก่อนพิมพ์', 'err')
+    return
+  }
+  window.print()
 }
 
 // ── Delete ───────────────────────────────────────────────────
