@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KUMON โพนพิสัย — Dashboard</title>
+  <style>
+    :root {
+      --bg:      #eaf4fb;
+      --navy:    #1a4a6e;
+      --primary: #f97316;
+      --gold:    #c9a227;
+      --blue:    #5ba4cf;
+      --text:    #1a202c;
+      --muted:   #5a7a92;
+      --border:  #c5e3f2;
+      --card:    #ffffff;
+      --ok-bg:   #ecfdf5;
+      --ok-fg:   #047857;
+      --wait-bg: #fff7ed;
+      --wait-fg: #c2410c;
+      --math-bg: #fff7ed; --math-fg: #c2410c; --math-bd: #fdba74;
+      --thai-bg: #f5f3ff; --thai-fg: #6d28d9; --thai-bd: #c4b5fd;
+      --eng-bg:  #eff6ff; --eng-fg:  #1d4ed8; --eng-bd:  #93c5fd;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    nav {
+      background: var(--navy);
+      padding: 0 20px;
+      height: 58px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 2px 8px rgba(0,0,0,.2);
+    }
+
+    .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      min-width: 0;
+    }
+
+    .nav-brand img {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 2px solid var(--gold);
+      flex-shrink: 0;
+    }
+
+    .nav-brand span {
+      font-weight: 700;
+      font-size: 1rem;
+      color: white;
+      letter-spacing: .3px;
+      white-space: nowrap;
+    }
+
+    .nav-right { display: flex; align-items: center; gap: 10px; }
+
+    .nav-email {
+      font-size: .78rem;
+      color: #a0c4dd;
+      max-width: 150px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .nav-link,
+    .nav-logout {
+      color: #a0c4dd;
+      font-size: .8rem;
+      text-decoration: none;
+      padding: 5px 11px;
+      border: 1px solid #3a6a90;
+      border-radius: 6px;
+      background: transparent;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .nav-link:hover,
+    .nav-logout:hover { background: #3a6a90; color: white; }
+
+    .page-top {
+      background: linear-gradient(135deg, var(--navy) 0%, #2a6496 100%);
+      padding: 22px 20px;
+      color: white;
+    }
+
+    .page-top-inner {
+      max-width: 1100px;
+      margin: 0 auto;
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 14px;
+    }
+
+    .page-top h2 { font-size: 1.2rem; font-weight: 700; }
+    .page-top p  { color: #a0c4dd; font-size: .82rem; margin-top: 3px; }
+
+    .container { max-width: 1100px; margin: 0 auto; padding: 22px 16px 36px; }
+
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+
+    .summary-box {
+      background: var(--card);
+      border: 1px solid rgba(197,227,242,.75);
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 2px 10px rgba(26,74,110,.07);
+    }
+
+    .summary-box span {
+      display: block;
+      color: var(--muted);
+      font-size: .78rem;
+      margin-bottom: 4px;
+    }
+
+    .summary-box strong {
+      color: var(--navy);
+      font-size: 1.55rem;
+      line-height: 1;
+    }
+
+    .toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .toolbar h3 { color: var(--navy); font-size: 1rem; }
+    .toolbar p { color: var(--muted); font-size: .78rem; margin-top: 2px; }
+
+    .filter-row { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+
+    .filter-btn {
+      border: 1px solid var(--border);
+      background: #fff;
+      color: var(--navy);
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: .82rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .filter-btn.active {
+      background: var(--navy);
+      border-color: var(--navy);
+      color: #fff;
+    }
+
+    .student-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 14px;
+    }
+
+    .student-card {
+      background: var(--card);
+      border-radius: 12px;
+      border: 1px solid rgba(197,227,242,.75);
+      border-left: 4px solid var(--border);
+      padding: 16px;
+      box-shadow: 0 2px 10px rgba(26,74,110,.07);
+      min-height: 150px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .student-card.in-class { border-left-color: var(--primary); }
+    .student-card.available { border-left-color: #10b981; }
+
+    .card-top { display: flex; gap: 12px; align-items: flex-start; }
+
+    .avatar {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #f97316, #ec4899, #7c3aed);
+      color: white;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .card-info { flex: 1; min-width: 0; }
+    .card-name { color: var(--navy); font-weight: 700; font-size: .98rem; overflow-wrap: anywhere; }
+    .card-sub { color: var(--muted); font-size: .8rem; margin-top: 2px; }
+
+    .status-pill {
+      border-radius: 999px;
+      padding: 5px 9px;
+      font-size: .75rem;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .status-pill.in-class { background: var(--wait-bg); color: var(--wait-fg); }
+    .status-pill.available { background: var(--ok-bg); color: var(--ok-fg); }
+
+    .badge-row { display: flex; flex-wrap: wrap; gap: 6px; }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      border-radius: 999px;
+      padding: 4px 9px;
+      font-size: .72rem;
+      font-weight: 700;
+      border: 1px solid transparent;
+    }
+
+    .badge-math    { background: var(--math-bg); color: var(--math-fg); border-color: var(--math-bd); }
+    .badge-thai    { background: var(--thai-bg); color: var(--thai-fg); border-color: var(--thai-bd); }
+    .badge-english { background: var(--eng-bg); color: var(--eng-fg); border-color: var(--eng-bd); }
+    .badge-default { background: #f1f5f9; color: #475569; border-color: #cbd5e1; }
+
+    .session-box {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 10px;
+      color: #334155;
+      font-size: .8rem;
+      line-height: 1.5;
+    }
+
+    .session-box strong { color: var(--navy); }
+
+    .state-box {
+      background: var(--card);
+      border: 1px dashed var(--border);
+      border-radius: 12px;
+      padding: 28px;
+      color: var(--muted);
+      text-align: center;
+      grid-column: 1 / -1;
+    }
+
+    .toast {
+      position: fixed;
+      right: 16px;
+      bottom: 16px;
+      background: #1e293b;
+      color: white;
+      padding: 10px 14px;
+      border-radius: 10px;
+      box-shadow: 0 8px 24px rgba(15,23,42,.24);
+      opacity: 0;
+      transform: translateY(10px);
+      pointer-events: none;
+      transition: opacity .2s, transform .2s;
+      font-size: .85rem;
+    }
+
+    .toast.show { opacity: 1; transform: translateY(0); }
+    .toast.err { background: #b91c1c; }
+
+    @media (max-width: 760px) {
+      nav { padding: 0 14px; }
+      .nav-email,
+      .nav-link { display: none; }
+      .nav-brand span { font-size: .92rem; }
+      .summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .toolbar { align-items: flex-start; flex-direction: column; }
+      .filter-row { justify-content: flex-start; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="/index.html" class="nav-brand">
+    <img src="/LOGO.jpg" alt="KUMON">
+    <span>KUMON โพนพิสัย</span>
+  </a>
+  <div class="nav-right">
+    <span class="nav-email" id="userEmail"></span>
+    <a href="/index.html" class="nav-link">← หน้าหลัก</a>
+    <button type="button" class="nav-logout" id="logoutBtn">ออก</button>
+  </div>
+</nav>
+
+<div class="page-top">
+  <div class="page-top-inner">
+    <div>
+      <h2>Dashboard นักเรียน</h2>
+      <p id="statusText">กำลังโหลดข้อมูล...</p>
+    </div>
+  </div>
+</div>
+
+<main class="container">
+  <section class="summary-grid">
+    <div class="summary-box">
+      <span>นักเรียนทั้งหมด</span>
+      <strong id="totalStudents">0</strong>
+    </div>
+    <div class="summary-box">
+      <span>กำลังเรียน</span>
+      <strong id="activeStudents">0</strong>
+    </div>
+    <div class="summary-box">
+      <span>ว่าง/ยังไม่เข้า</span>
+      <strong id="availableStudents">0</strong>
+    </div>
+    <div class="summary-box">
+      <span>รายการเปิดอยู่</span>
+      <strong id="openSessions">0</strong>
+    </div>
+  </section>
+
+  <section class="toolbar">
+    <div>
+      <h3>รายชื่อนักเรียน</h3>
+      <p id="listSubtext">แสดงเฉพาะนักเรียนที่ active ในระบบ</p>
+    </div>
+    <div class="filter-row">
+      <button type="button" class="filter-btn active" data-filter="all">ทั้งหมด</button>
+      <button type="button" class="filter-btn" data-filter="in">กำลังเรียน</button>
+      <button type="button" class="filter-btn" data-filter="out">ว่าง</button>
+    </div>
+  </section>
+
+  <section class="student-grid" id="studentGrid">
+    <div class="state-box">กำลังโหลดรายชื่อ...</div>
+  </section>
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script src="/js/config.js"></script>
+<script type="module">
+import { requireAuth, logout } from '/js/auth.js'
+import { supabase } from '/js/supabase.js'
+
+let students = []
+let openLogs = []
+let currentFilter = 'all'
+let toastTimer
+let reloadTimer
+
+async function init() {
+  const session = await requireAuth()
+  if (!session) return
+
+  document.getElementById('userEmail').textContent = session.user.email
+  document.getElementById('logoutBtn').addEventListener('click', logout)
+  document.querySelectorAll('.filter-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      currentFilter = btn.dataset.filter
+      document.querySelectorAll('.filter-btn').forEach(el => el.classList.toggle('active', el === btn))
+      render()
+    })
+  })
+
+  await loadDashboard()
+  subscribeRealtime()
+  setInterval(render, 60000)
+}
+
+function cls(name = '') {
+  const n = name.toLowerCase()
+  if (n === 'math') return 'math'
+  if (n === 'thai') return 'thai'
+  if (n.includes('eng')) return 'english'
+  return 'default'
+}
+
+function subjectLabel(name = '') {
+  const c = cls(name)
+  if (c === 'math') return 'MATH'
+  if (c === 'thai') return 'THAI'
+  if (c === 'english') return 'ENG'
+  return name
+}
+
+function escapeHtml(value) {
+  return String(value ?? '').replace(/[&<>"']/g, char => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#039;',
+  }[char]))
+}
+
+function normalizeStudentSubjects(subjectRows = []) {
+  const seen = new Set()
+  return subjectRows
+    .map(row => row?.subjects ? { subject_id: row.subject_id, subjects: row.subjects } : null)
+    .filter(Boolean)
+    .filter(row => {
+      const key = row.subject_id || row.subjects.id || row.subjects.name
+      if (seen.has(key)) return false
+      seen.add(key)
+      return true
+    })
+    .sort((a, b) => {
+      const order = { math: 1, thai: 2, english: 3, default: 4 }
+      return order[cls(a.subjects.name)] - order[cls(b.subjects.name)]
+    })
+}
+
+function fmtTime(value) {
+  if (!value) return '-'
+  return new Intl.DateTimeFormat('th-TH', {
+    hour: '2-digit',
+    minute: '2-digit',
+    day: '2-digit',
+    month: 'short'
+  }).format(new Date(value))
+}
+
+function minutesSince(value) {
+  if (!value) return 0
+  return Math.max(0, Math.round((Date.now() - new Date(value).getTime()) / 60000))
+}
+
+function durationLabel(minutes) {
+  if (minutes < 60) return `${minutes} นาที`
+  const hours = Math.floor(minutes / 60)
+  const rest = minutes % 60
+  return rest ? `${hours} ชม. ${rest} นาที` : `${hours} ชม.`
+}
+
+function toast(msg, type = 'ok') {
+  const el = document.getElementById('toast')
+  el.textContent = msg
+  el.className = `toast ${type} show`
+  clearTimeout(toastTimer)
+  toastTimer = setTimeout(() => el.classList.remove('show'), 3200)
+}
+
+async function loadDashboard() {
+  document.getElementById('statusText').textContent = 'กำลังโหลดข้อมูล...'
+
+  const [{ data: studentData, error: studentErr }, { data: logData, error: logErr }] = await Promise.all([
+    supabase
+      .from('students')
+      .select(`
+        id, name, nickname, grade_level, created_at,
+        student_subjects ( subject_id, subjects ( id, name, color ) )
+      `)
+      .eq('is_active', true)
+      .order('name'),
+    supabase
+      .from('attendance_logs')
+      .select(`
+        id, student_id, subject_id, check_in_at,
+        subjects ( id, name, color )
+      `)
+      .is('check_out_at', null)
+      .order('check_in_at', { ascending: false })
+  ])
+
+  if (studentErr) {
+    showError('โหลดรายชื่อนักเรียนไม่สำเร็จ: ' + studentErr.message)
+    return
+  }
+  if (logErr) {
+    showError('โหลดสถานะเข้าเรียนไม่สำเร็จ: ' + logErr.message)
+    return
+  }
+
+  students = studentData || []
+  openLogs = logData || []
+  render()
+}
+
+function logsByStudent() {
+  const map = new Map()
+  openLogs.forEach(log => {
+    if (!map.has(log.student_id)) map.set(log.student_id, [])
+    map.get(log.student_id).push(log)
+  })
+  return map
+}
+
+function render() {
+  const grid = document.getElementById('studentGrid')
+  const openMap = logsByStudent()
+  const inClassCount = students.filter(student => openMap.has(student.id)).length
+  const visibleStudents = students.filter(student => {
+    const inClass = openMap.has(student.id)
+    if (currentFilter === 'in') return inClass
+    if (currentFilter === 'out') return !inClass
+    return true
+  })
+
+  document.getElementById('totalStudents').textContent = students.length
+  document.getElementById('activeStudents').textContent = inClassCount
+  document.getElementById('availableStudents').textContent = Math.max(0, students.length - inClassCount)
+  document.getElementById('openSessions').textContent = openLogs.length
+  document.getElementById('statusText').textContent = `อัปเดตล่าสุด ${fmtTime(new Date())}`
+  document.getElementById('listSubtext').textContent = `${visibleStudents.length} จาก ${students.length} คน`
+
+  if (!students.length) {
+    grid.innerHTML = '<div class="state-box">ยังไม่มีนักเรียนในระบบ</div>'
+    return
+  }
+
+  if (!visibleStudents.length) {
+    grid.innerHTML = '<div class="state-box">ไม่มีนักเรียนในตัวกรองนี้</div>'
+    return
+  }
+
+  grid.innerHTML = visibleStudents.map(student => {
+    const sessions = openMap.get(student.id) || []
+    const inClass = sessions.length > 0
+    const displayName = student.name || '-'
+    const displayNick = student.nickname || ''
+    const initial = (displayNick || displayName).charAt(0).toUpperCase()
+    const subjects = normalizeStudentSubjects(student.student_subjects || [])
+    const subjectBadges = subjects.length
+      ? subjects.map(row =>
+          `<span class="badge badge-${cls(row.subjects.name)}">${escapeHtml(subjectLabel(row.subjects.name))}</span>`
+        ).join('')
+      : '<span class="badge badge-default">ยังไม่มีวิชา</span>'
+    const gradeBadge = student.grade_level
+      ? `<span class="badge badge-default">${escapeHtml(student.grade_level)}</span>`
+      : ''
+    const sessionHtml = sessions.length
+      ? sessions.map(log => {
+          const minutes = minutesSince(log.check_in_at)
+          const subject = escapeHtml(subjectLabel(log.subjects?.name || '-'))
+          return `<div><strong>${subject}</strong> เข้า ${fmtTime(log.check_in_at)} · ${durationLabel(minutes)}</div>`
+        }).join('')
+      : '<div>ยังไม่มีรายการเข้าเรียนที่เปิดอยู่</div>'
+
+    return `
+      <article class="student-card ${inClass ? 'in-class' : 'available'}">
+        <div class="card-top">
+          <div class="avatar">${escapeHtml(initial)}</div>
+          <div class="card-info">
+            <div class="card-name">${escapeHtml(displayName)}</div>
+            <div class="card-sub">${displayNick ? `ชื่อเล่น: ${escapeHtml(displayNick)}` : 'ไม่มีชื่อเล่น'}</div>
+          </div>
+          <span class="status-pill ${inClass ? 'in-class' : 'available'}">${inClass ? 'กำลังเรียน' : 'ว่าง'}</span>
+        </div>
+        <div class="badge-row">${subjectBadges}${gradeBadge}</div>
+        <div class="session-box">${sessionHtml}</div>
+      </article>`
+  }).join('')
+}
+
+function showError(message) {
+  document.getElementById('statusText').textContent = 'โหลดข้อมูลไม่สำเร็จ'
+  document.getElementById('studentGrid').innerHTML = `<div class="state-box">${escapeHtml(message)}</div>`
+  toast(message, 'err')
+}
+
+function subscribeRealtime() {
+  supabase
+    .channel('dashboard-attendance')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'attendance_logs' }, () => {
+      clearTimeout(reloadTimer)
+      reloadTimer = setTimeout(loadDashboard, 300)
+    })
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'students' }, () => {
+      clearTimeout(reloadTimer)
+      reloadTimer = setTimeout(loadDashboard, 300)
+    })
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'student_subjects' }, () => {
+      clearTimeout(reloadTimer)
+      reloadTimer = setTimeout(loadDashboard, 300)
+    })
+    .subscribe()
+}
+
+init()
+</script>
+
+</body>
+</html>

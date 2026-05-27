@@ -658,6 +658,23 @@ function subjectLabel(name = '') {
   return name
 }
 
+function normalizeStudentSubjects(subjectRows = []) {
+  const seen = new Set()
+  return subjectRows
+    .map(row => row?.subjects ? { subject_id: row.subject_id, subjects: row.subjects } : null)
+    .filter(Boolean)
+    .filter(row => {
+      const key = row.subject_id || row.subjects.id || row.subjects.name
+      if (seen.has(key)) return false
+      seen.add(key)
+      return true
+    })
+    .sort((a, b) => {
+      const order = { math: 1, thai: 2, english: 3, default: 4 }
+      return order[cls(a.subjects.name)] - order[cls(b.subjects.name)]
+    })
+}
+
 function qrDarkColor(name = '') {
   const c = cls(name)
   if (c === 'math')    return '#c2410c'
@@ -701,11 +718,13 @@ function renderStudents() {
   }
 
   grid.innerHTML = students.map(s => {
-    const subs    = s.student_subjects || []
-    const initial = (s.nickname || s.name).charAt(0).toUpperCase()
+    const subs    = normalizeStudentSubjects(s.student_subjects || [])
+    const displayName = s.name || '-'
+    const displayNick = s.nickname || ''
+    const initial = (displayNick || displayName).charAt(0).toUpperCase()
     const badges  = subs.length
       ? subs.map(ss =>
-          `<span class="badge badge-${cls(ss.subjects.name)}">${subjectLabel(ss.subjects.name)}</span>`
+          `<span class="badge badge-${cls(ss.subjects.name)}">${escapeHtml(subjectLabel(ss.subjects.name))}</span>`
         ).join('')
       : `<span class="no-sub">ยังไม่มีวิชา</span>`
     const gradeTag = s.grade_level
@@ -717,13 +736,13 @@ function renderStudents() {
         <div class="card-top">
           <div class="avatar">${initial}</div>
           <div class="card-info">
-            <div class="card-name">${s.name}</div>
-            ${s.nickname ? `<div class="card-nick">(${s.nickname})</div>` : ''}
+            <div class="card-name">${escapeHtml(displayName)}</div>
+            ${displayNick ? `<div class="card-nick">(${escapeHtml(displayNick)})</div>` : ''}
           </div>
           <div class="card-actions">
             <button class="btn-qr"          onclick="openQR('${s.id}')">📱 QR</button>
             <button class="btn-icon edit"   onclick="openEdit('${s.id}')" title="แก้ไข">✏️</button>
-            <button class="btn-del"         onclick="doDelete('${s.id}','${s.name.replace(/'/g,"\\'")}')">🗑️</button>
+            <button class="btn-del"         onclick="doDelete('${s.id}')">🗑️</button>
           </div>
         </div>
         <div class="card-subjects">${badges}${gradeTag}</div>
@@ -918,7 +937,7 @@ window.openQR = async (studentId) => {
   document.getElementById('qrSub').textContent   = [s.nickname ? `ชื่อเล่น: ${s.nickname}` : '', s.grade_level || '']
     .filter(Boolean).join(' · ')
 
-  const subs = s.student_subjects || []
+  const subs = normalizeStudentSubjects(s.student_subjects || [])
   const grid = document.getElementById('qrGrid')
 
   if (!subs.length) {
@@ -933,8 +952,8 @@ window.openQR = async (studentId) => {
     return `
       <div class="qr-card ${c}">
         <canvas id="qr-${ss.subjects.id}"></canvas>
-        <div class="qr-sub">${subjectLabel(ss.subjects.name)}</div>
-        <div class="qr-name">${s.nickname || s.name}</div>
+        <div class="qr-sub">${escapeHtml(subjectLabel(ss.subjects.name))}</div>
+        <div class="qr-name">${escapeHtml(s.nickname || s.name)}</div>
         ${s.grade_level ? `<div class="qr-name">${escapeHtml(s.grade_level)}</div>` : ''}
       </div>`
   }).join('')
@@ -956,7 +975,7 @@ async function openAllQR() {
 
   const entries = []
   students.forEach(s => {
-    const enrolledSubjects = s.student_subjects || []
+    const enrolledSubjects = normalizeStudentSubjects(s.student_subjects || [])
     enrolledSubjects.forEach(ss => {
       if (!ss.subjects) return
       entries.push({ student: s, subject: ss.subjects })
@@ -1012,7 +1031,9 @@ function hideQR() {
 
 // ── Delete ───────────────────────────────────────────────────
 
-window.doDelete = async (id, name) => {
+window.doDelete = async (id) => {
+  const student = students.find(x => x.id === id)
+  const name = student?.name || 'นักเรียน'
   if (!confirm(`ลบ "${name}" ออกจากระบบ?\n(ประวัติการเข้าเรียนจะยังคงอยู่)`)) return
   const { error } = await supabase.from('students').update({ is_active: false }).eq('id', id)
   if (error) { toast('ลบไม่สำเร็จ: ' + error.message, 'err'); return }
