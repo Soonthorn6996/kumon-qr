@@ -1,5 +1,5 @@
 (function () {
-  const APP_VERSION = '1.1.4'
+  const APP_VERSION = '1.1.5'
   const BUILD_LABEL = '2026-05-27'
 
   window.CLASS_SCAN_VERSION = APP_VERSION

@@ -480,6 +480,11 @@
 
 <script src="/js/config.js"></script>
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script>
+  if (!window.Html5Qrcode) {
+    document.write('<script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"><\/script>')
+  }
+</script>
 <script type="module">
 import { requireAuth, logout } from '/js/auth.js'
 import { supabase } from '/js/supabase.js'
@@ -494,13 +499,13 @@ const manualCode = document.getElementById('manualCode')
 const manualBtn = document.getElementById('manualBtn')
 
 let qrReader = null
-let currentCameraId = null
 let processing = false
 let scannerRunning = false
 let lastPayload = ''
 let lastScanAt = 0
 let toastTimer
 let supportsGradeLevel = true
+let cameraChangeBound = false
 
 async function init() {
   const session = await requireAuth()
@@ -516,7 +521,7 @@ async function init() {
     if (e.key === 'Enter') processScan(manualCode.value, true)
   })
 
-  await loadCameras()
+  setupCameraOptions()
   await loadHistory()
 }
 
@@ -559,69 +564,195 @@ function isMissingGradeLevelError(error) {
   return Boolean(error && /grade_level/i.test(message))
 }
 
-async function loadCameras() {
-  if (!window.Html5Qrcode) {
-    cameraSelect.innerHTML = '<option>โหลดตัวอ่าน QR ไม่สำเร็จ</option>'
-    startBtn.disabled = true
-    showError('โหลดไลบรารีสแกน QR ไม่สำเร็จ กรุณาตรวจสอบอินเทอร์เน็ตหรือใช้ช่องทดสอบด้านล่าง')
-    return
-  }
+function setupCameraOptions() {
+  cameraSelect.innerHTML = [
+    '<option value="mode:environment">กล้องหลัง (แนะนำ)</option>',
+    '<option value="mode:user">กล้องหน้า</option>',
+  ].join('')
+  cameraSelect.value = 'mode:environment'
+  statusEl.textContent = 'กดเริ่มสแกนเพื่ออนุญาตกล้อง'
 
-  try {
-    const cameras = await Html5Qrcode.getCameras()
-    if (!cameras.length) {
-      cameraSelect.innerHTML = '<option>ไม่พบกล้อง</option>'
-      startBtn.disabled = true
-      showError('ไม่พบกล้องบนอุปกรณ์นี้')
-      return
-    }
-
-    cameraSelect.innerHTML = cameras.map(cam =>
-      `<option value="${cam.id}">${cam.label || 'Camera'}</option>`
-    ).join('')
-
-    const backCamera = cameras.find(cam => /back|rear|environment/i.test(cam.label || ''))
-    currentCameraId = backCamera?.id || cameras[0].id
-    cameraSelect.value = currentCameraId
+  if (!cameraChangeBound) {
     cameraSelect.addEventListener('change', async () => {
-      currentCameraId = cameraSelect.value
       if (scannerRunning) {
         await stopScanner()
         await startScanner()
       }
     })
+    cameraChangeBound = true
+  }
 
-    statusEl.textContent = 'เลือกกล้องแล้ว กดเริ่มสแกนเพื่อใช้งาน'
-  } catch (err) {
+  if (!window.Html5Qrcode) {
+    cameraSelect.innerHTML = '<option>โหลดตัวอ่าน QR ไม่สำเร็จ</option>'
     startBtn.disabled = true
-    showError('ไม่สามารถเปิดรายการกล้องได้: ' + err.message)
+    showError('โหลดไลบรารีสแกน QR ไม่สำเร็จ กรุณาตรวจสอบอินเทอร์เน็ตหรือใช้ช่องทดสอบด้านล่าง')
+  }
+}
+
+function cameraOptionValue(id) {
+  return `device:${encodeURIComponent(id)}`
+}
+
+function cameraIdFromOption(value) {
+  return decodeURIComponent(value.replace(/^device:/, ''))
+}
+
+function selectedCameraConfig() {
+  const value = cameraSelect.value || 'mode:environment'
+  if (value === 'mode:user') return { facingMode: 'user' }
+  if (value.startsWith('device:')) return cameraIdFromOption(value)
+  return { facingMode: 'environment' }
+}
+
+function renderCameraDevices(cameras) {
+  const currentValue = cameraSelect.value
+  const deviceOptions = cameras.map((cam, index) => {
+    const label = escapeHtml(cam.label || `Camera ${index + 1}`)
+    return `<option value="${cameraOptionValue(cam.id)}">${label}</option>`
+  })
+
+  cameraSelect.innerHTML = [
+    '<option value="mode:environment">กล้องหลัง (แนะนำ)</option>',
+    '<option value="mode:user">กล้องหน้า</option>',
+    ...deviceOptions,
+  ].join('')
+
+  const backCamera = cameras.find(cam => /back|rear|environment|หลัง/i.test(cam.label || ''))
+  const preferredValue = backCamera ? cameraOptionValue(backCamera.id) : currentValue
+  const values = Array.from(cameraSelect.options).map(option => option.value)
+  cameraSelect.value = values.includes(preferredValue) ? preferredValue : 'mode:environment'
+}
+
+function canUseCamera() {
+  const localHost = ['localhost', '127.0.0.1', '::1'].includes(location.hostname)
+  if (!window.isSecureContext && !localHost) {
+    showError('ต้องเปิดผ่าน HTTPS เพื่อใช้งานกล้องบนมือถือ')
+    startBtn.disabled = true
+    return false
+  }
+
+  if (!navigator.mediaDevices?.getUserMedia) {
+    showError('เบราว์เซอร์นี้ไม่รองรับการเปิดกล้อง กรุณาใช้ Safari/Chrome เวอร์ชันใหม่')
+    startBtn.disabled = true
+    return false
+  }
+
+  if (!window.Html5Qrcode) {
+    showError('โหลดไลบรารีสแกน QR ไม่สำเร็จ กรุณารีเฟรชหน้า')
+    startBtn.disabled = true
+    return false
+  }
+
+  return true
+}
+
+async function loadCameras() {
+  if (!canUseCamera()) return
+
+  try {
+    const cameras = await Html5Qrcode.getCameras()
+    if (!cameras.length) {
+      statusEl.textContent = 'ไม่พบรายการกล้อง แต่ยังลองเปิดกล้องหลังได้'
+      return
+    }
+
+    renderCameraDevices(cameras)
+    statusEl.textContent = scannerRunning ? 'กำลังสแกน...' : 'เลือกกล้องแล้ว กดเริ่มสแกนเพื่อใช้งาน'
+  } catch (err) {
+    statusEl.textContent = scannerRunning ? 'กำลังสแกน...' : 'กดเริ่มสแกนเพื่ออนุญาตกล้อง'
+    console.warn('Camera list unavailable before permission:', err)
   }
 }
 
 async function startScanner() {
-  if (!currentCameraId || !window.Html5Qrcode) return
+  if (!canUseCamera()) return
 
   try {
     if (!qrReader) qrReader = new Html5Qrcode('reader')
-    await qrReader.start(
-      currentCameraId,
-      { fps: 10, qrbox: qrboxSize },
-      decodedText => processScan(decodedText, false),
-      () => {}
-    )
-    scannerRunning = true
     startBtn.disabled = true
+    statusEl.textContent = 'กำลังขออนุญาตกล้อง...'
+    await startWithFallbackCameras()
+    tuneScannerVideo()
+    scannerRunning = true
     stopBtn.disabled = false
     statusEl.textContent = 'กำลังสแกน...'
+    await loadCameras()
+    statusEl.textContent = 'กำลังสแกน...'
   } catch (err) {
-    showError('เปิดกล้องไม่สำเร็จ: ' + err.message)
+    startBtn.disabled = false
+    showError('เปิดกล้องไม่สำเร็จ: ' + cameraErrorMessage(err))
   }
+}
+
+function tuneScannerVideo() {
+  const video = document.querySelector('#reader video')
+  if (!video) return
+  video.setAttribute('playsinline', 'true')
+  video.setAttribute('webkit-playsinline', 'true')
+  video.muted = true
+  video.autoplay = true
+}
+
+function cameraErrorMessage(err) {
+  const message = err?.message || ''
+  const name = err?.name || ''
+  const text = `${name} ${message}`.toLowerCase()
+
+  if (/notallowed|permission|denied/.test(text)) {
+    return 'ไม่ได้รับอนุญาตใช้กล้อง กรุณาอนุญาตกล้องในเบราว์เซอร์แล้วลองใหม่'
+  }
+  if (/notfound|devicesnotfound|no camera|requested device not found/.test(text)) {
+    return 'ไม่พบกล้องบนอุปกรณ์นี้'
+  }
+  if (/notreadable|trackstart|in use|could not start/.test(text)) {
+    return 'กล้องอาจถูกแอปอื่นใช้อยู่ กรุณาปิดแอปกล้อง/วิดีโอคอลแล้วลองใหม่'
+  }
+  if (/overconstrained|constraint/.test(text)) {
+    return 'อุปกรณ์ไม่รองรับกล้องที่เลือก กรุณาลองเลือกกล้องหน้า/กล้องหลังใหม่'
+  }
+
+  return message || 'ไม่สามารถเปิดกล้องได้'
+}
+
+async function startWithFallbackCameras() {
+  const selected = selectedCameraConfig()
+  const configs = [selected]
+
+  if (typeof selected === 'string') {
+    configs.push({ facingMode: 'environment' })
+  }
+  if (JSON.stringify(selected) !== JSON.stringify({ facingMode: 'environment' })) {
+    configs.push({ facingMode: 'environment' })
+  }
+  configs.push({ facingMode: 'user' })
+
+  let lastError = null
+  for (const cameraConfig of configs) {
+    try {
+      await qrReader.start(
+        cameraConfig,
+        { fps: 10, qrbox: qrboxSize },
+        decodedText => processScan(decodedText, false),
+        () => {}
+      )
+      return
+    } catch (err) {
+      lastError = err
+      if (/notallowed|permission|denied/i.test(err?.name || err?.message || '')) break
+    }
+  }
+
+  throw lastError || new Error('ไม่สามารถเปิดกล้องได้')
 }
 
 async function stopScanner() {
   if (!qrReader || !scannerRunning) return
-  await qrReader.stop()
-  await qrReader.clear()
+  try {
+    await qrReader.stop()
+    await qrReader.clear()
+  } catch (err) {
+    console.warn('Stop scanner failed:', err)
+  }
   scannerRunning = false
   startBtn.disabled = false
   stopBtn.disabled = true
