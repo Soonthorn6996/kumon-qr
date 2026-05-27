@@ -368,7 +368,10 @@
       border: 2px solid var(--border); min-width: 170px;
     }
 
-    .qr-card img {
+    .qr-card .qr-code-host,
+    .qr-card .qr-code-host canvas,
+    .qr-card .qr-code-host img,
+    .qr-card .qr-print-img {
       width: 160px;
       height: 160px;
       border-radius: 6px;
@@ -377,9 +380,23 @@
       image-rendering: pixelated;
     }
 
-    .qr-card img.qr-error {
+    .qr-card .qr-print-img {
+      display: none;
+    }
+
+    .qr-error-text {
+      width: 160px;
+      height: 160px;
       border: 1px dashed #fca5a5;
+      border-radius: 6px;
       background: #fff7ed;
+      color: #b91c1c;
+      display: grid;
+      place-items: center;
+      margin: 0 auto;
+      padding: 12px;
+      font-size: .82rem;
+      font-weight: 700;
     }
 
     .qr-sub  { font-weight: 700; font-size: .95rem; margin-top: 10px; }
@@ -552,7 +569,11 @@
         background: white !important;
         min-width: 0;
       }
-      .qr-card img {
+      .qr-card .qr-code-host {
+        display: none;
+      }
+      .qr-card .qr-print-img {
+        display: block;
         print-color-adjust: exact;
         -webkit-print-color-adjust: exact;
       }
@@ -684,7 +705,12 @@
 <div class="toast" id="toast"></div>
 
 <script src="/js/config.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+<script>
+  if (!window.QRCode) {
+    document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"><\/script>')
+  }
+</script>
 <script type="module">
 import { requireAuth, logout } from '/js/auth.js'
 import { supabase } from '/js/supabase.js'
@@ -871,47 +897,68 @@ function qrDarkColor(name = '') {
 function qrOptions(name = '') {
   return {
     width: 160,
+    height: 160,
+    text: '',
     margin: 2,
-    errorCorrectionLevel: 'M',
-    color: {
-      dark: qrDarkColor(name),
-      light: '#ffffff',
-    },
+    colorDark: qrDarkColor(name),
+    colorLight: '#ffffff',
+    correctLevel: window.QRCode?.CorrectLevel?.M ?? 0,
   }
 }
 
-function qrDataUrl(payload, subjectName) {
-  return new Promise((resolve, reject) => {
-    if (!window.QRCode?.toCanvas) {
-      reject(new Error('ไม่พบตัวสร้าง QR Code'))
-      return
-    }
+function renderQRCode(host, payload, subjectName) {
+  if (!window.QRCode) {
+    throw new Error('ไม่พบตัวสร้าง QR Code')
+  }
 
-    const canvas = document.createElement('canvas')
-    let done = false
-    const finish = (err) => {
-      if (done) return
-      done = true
-      if (err) {
-        reject(err)
-        return
-      }
-      resolve(canvas.toDataURL('image/png'))
-    }
+  host.innerHTML = ''
+  new QRCode(host, {
+    ...qrOptions(subjectName),
+    text: payload,
+  })
+}
 
+async function setQRCode(host, payload, subjectName) {
+  host.dataset.qrPayload = payload
+  host.dataset.qrSubject = subjectName || ''
+  renderQRCode(host, payload, subjectName)
+  try {
+    updatePrintImage(host)
+  } catch (err) {
+    console.warn('QR print image update failed:', err)
+  }
+}
+
+function updatePrintImage(host) {
+  const targetId = host.dataset.printTarget
+  const printImg = targetId ? document.getElementById(targetId) : null
+  if (!printImg) return
+
+  const canvas = host.querySelector('canvas')
+  if (canvas?.width && canvas?.height) {
+    printImg.src = canvas.toDataURL('image/png')
+    return
+  }
+
+  const img = host.querySelector('img')
+  if (img?.src) printImg.src = img.src
+}
+
+function prepareQRImagesForPrint() {
+  document.querySelectorAll('#qrGrid .qr-code-host[data-print-target]').forEach(host => {
     try {
-      const result = QRCode.toCanvas(canvas, payload, qrOptions(subjectName), finish)
-      if (result?.then) result.then(() => finish(), finish)
+      updatePrintImage(host)
     } catch (err) {
-      finish(err)
+      console.warn('QR print image update failed:', err)
     }
   })
 }
 
-async function setQRImage(img, payload, subjectName) {
-  img.removeAttribute('src')
-  img.classList.remove('qr-error')
-  img.src = await qrDataUrl(payload, subjectName)
+function showQRError(host) {
+  const errorEl = document.createElement('div')
+  errorEl.className = 'qr-error-text'
+  errorEl.textContent = 'สร้าง QR ไม่สำเร็จ'
+  host.replaceWith(errorEl)
 }
 
 function escapeHtml(value) {
@@ -1218,9 +1265,12 @@ window.openQR = async (studentId) => {
 
   grid.innerHTML = subs.map(ss => {
     const c = cls(ss.subjects.name)
+    const qrId = `qr-${ss.subjects.id}`
+    const printId = `qr-print-${ss.subjects.id}`
     return `
       <div class="qr-card ${c}">
-        <img id="qr-${ss.subjects.id}" alt="QR ${escapeHtml(subjectLabel(ss.subjects.name))} ${escapeHtml(s.name)}">
+        <div class="qr-code-host" id="${qrId}" data-print-target="${printId}" aria-label="QR ${escapeHtml(subjectLabel(ss.subjects.name))} ${escapeHtml(s.name)}"></div>
+        <img class="qr-print-img" id="${printId}" alt="QR ${escapeHtml(subjectLabel(ss.subjects.name))} ${escapeHtml(s.name)}">
         <div class="qr-sub">${escapeHtml(subjectLabel(ss.subjects.name))}</div>
         <div class="qr-name">${escapeHtml(s.nickname || s.name)}</div>
         ${s.grade_level ? `<div class="qr-name">${escapeHtml(s.grade_level)}</div>` : ''}
@@ -1230,14 +1280,13 @@ window.openQR = async (studentId) => {
   showQRSection()
 
   for (const ss of subs) {
-    const img = document.getElementById(`qr-${ss.subjects.id}`)
-    if (!img) continue
+    const host = document.getElementById(`qr-${ss.subjects.id}`)
+    if (!host) continue
     try {
-      await setQRImage(img, `${s.qr_code}:${ss.subjects.id}`, ss.subjects.name)
+      await setQRCode(host, `${s.qr_code}:${ss.subjects.id}`, ss.subjects.name)
     } catch (err) {
       console.error('QR render failed:', err)
-      img.classList.add('qr-error')
-      img.alt = 'สร้าง QR ไม่สำเร็จ'
+      showQRError(host)
     }
   }
 }
@@ -1272,9 +1321,12 @@ async function openAllQR() {
     : `${students.length} คน · ${entries.length} QR Code`
   grid.innerHTML = entries.map((entry, index) => {
     const c = cls(entry.subject.name)
+    const qrId = `qr-all-${index}`
+    const printId = `qr-print-all-${index}`
     return `
       <div class="qr-card ${c}">
-        <img id="qr-all-${index}" alt="QR ${escapeHtml(subjectLabel(entry.subject.name))} ${escapeHtml(entry.student.name)}">
+        <div class="qr-code-host" id="${qrId}" data-print-target="${printId}" aria-label="QR ${escapeHtml(subjectLabel(entry.subject.name))} ${escapeHtml(entry.student.name)}"></div>
+        <img class="qr-print-img" id="${printId}" alt="QR ${escapeHtml(subjectLabel(entry.subject.name))} ${escapeHtml(entry.student.name)}">
         <div class="qr-sub">${escapeHtml(subjectLabel(entry.subject.name))}</div>
         <div class="qr-name">${escapeHtml(entry.student.nickname || entry.student.name)}</div>
         ${entry.student.grade_level ? `<div class="qr-name">${escapeHtml(entry.student.grade_level)}</div>` : ''}
@@ -1284,14 +1336,13 @@ async function openAllQR() {
   showQRSection()
 
   for (const [index, entry] of entries.entries()) {
-    const img = document.getElementById(`qr-all-${index}`)
-    if (!img) continue
+    const host = document.getElementById(`qr-all-${index}`)
+    if (!host) continue
     try {
-      await setQRImage(img, `${entry.student.qr_code}:${entry.subject.id}`, entry.subject.name)
+      await setQRCode(host, `${entry.student.qr_code}:${entry.subject.id}`, entry.subject.name)
     } catch (err) {
       console.error('QR render failed:', err)
-      img.classList.add('qr-error')
-      img.alt = 'สร้าง QR ไม่สำเร็จ'
+      showQRError(host)
     }
   }
 }
@@ -1308,11 +1359,12 @@ function hideQR() {
 
 function printQR() {
   const section = document.getElementById('qrSection')
-  const hasQR = section && !section.hidden && document.querySelector('#qrGrid img')
+  const hasQR = section && !section.hidden && document.querySelector('#qrGrid .qr-code-host')
   if (!hasQR) {
     toast('กรุณาสร้าง QR ก่อนพิมพ์', 'err')
     return
   }
+  prepareQRImagesForPrint()
   window.print()
 }
 
