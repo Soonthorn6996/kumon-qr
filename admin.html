@@ -377,6 +377,11 @@
       image-rendering: pixelated;
     }
 
+    .qr-card img.qr-error {
+      border: 1px dashed #fca5a5;
+      background: #fff7ed;
+    }
+
     .qr-sub  { font-weight: 700; font-size: .95rem; margin-top: 10px; }
     .qr-name { color: var(--muted); font-size: .78rem; margin-top: 3px; }
 
@@ -863,6 +868,52 @@ function qrDarkColor(name = '') {
   return '#1a202c'
 }
 
+function qrOptions(name = '') {
+  return {
+    width: 160,
+    margin: 2,
+    errorCorrectionLevel: 'M',
+    color: {
+      dark: qrDarkColor(name),
+      light: '#ffffff',
+    },
+  }
+}
+
+function qrDataUrl(payload, subjectName) {
+  return new Promise((resolve, reject) => {
+    if (!window.QRCode?.toCanvas) {
+      reject(new Error('ไม่พบตัวสร้าง QR Code'))
+      return
+    }
+
+    const canvas = document.createElement('canvas')
+    let done = false
+    const finish = (err) => {
+      if (done) return
+      done = true
+      if (err) {
+        reject(err)
+        return
+      }
+      resolve(canvas.toDataURL('image/png'))
+    }
+
+    try {
+      const result = QRCode.toCanvas(canvas, payload, qrOptions(subjectName), finish)
+      if (result?.then) result.then(() => finish(), finish)
+    } catch (err) {
+      finish(err)
+    }
+  })
+}
+
+async function setQRImage(img, payload, subjectName) {
+  img.removeAttribute('src')
+  img.classList.remove('qr-error')
+  img.src = await qrDataUrl(payload, subjectName)
+}
+
 function escapeHtml(value) {
   return String(value ?? '').replace(/[&<>"']/g, ch => ({
     '&': '&amp;',
@@ -1181,10 +1232,13 @@ window.openQR = async (studentId) => {
   for (const ss of subs) {
     const img = document.getElementById(`qr-${ss.subjects.id}`)
     if (!img) continue
-    img.src = await QRCode.toDataURL(`${s.qr_code}:${ss.subjects.id}`, {
-      width: 160, margin: 2,
-      color: { dark: qrDarkColor(ss.subjects.name), light: '#f8fafc' }
-    })
+    try {
+      await setQRImage(img, `${s.qr_code}:${ss.subjects.id}`, ss.subjects.name)
+    } catch (err) {
+      console.error('QR render failed:', err)
+      img.classList.add('qr-error')
+      img.alt = 'สร้าง QR ไม่สำเร็จ'
+    }
   }
 }
 
@@ -1232,10 +1286,13 @@ async function openAllQR() {
   for (const [index, entry] of entries.entries()) {
     const img = document.getElementById(`qr-all-${index}`)
     if (!img) continue
-    img.src = await QRCode.toDataURL(`${entry.student.qr_code}:${entry.subject.id}`, {
-      width: 160, margin: 2,
-      color: { dark: qrDarkColor(entry.subject.name), light: '#f8fafc' }
-    })
+    try {
+      await setQRImage(img, `${entry.student.qr_code}:${entry.subject.id}`, entry.subject.name)
+    } catch (err) {
+      console.error('QR render failed:', err)
+      img.classList.add('qr-error')
+      img.alt = 'สร้าง QR ไม่สำเร็จ'
+    }
   }
 }
 
