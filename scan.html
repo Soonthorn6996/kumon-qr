@@ -500,6 +500,7 @@ let scannerRunning = false
 let lastPayload = ''
 let lastScanAt = 0
 let toastTimer
+let supportsGradeLevel = true
 
 async function init() {
   const session = await requireAuth()
@@ -551,6 +552,11 @@ function toast(msg, type = 'ok') {
   el.className = `toast ${type} show`
   clearTimeout(toastTimer)
   toastTimer = setTimeout(() => el.classList.remove('show'), 3200)
+}
+
+function isMissingGradeLevelError(error) {
+  const message = error?.message || error?.details || ''
+  return Boolean(error && /grade_level/i.test(message))
 }
 
 async function loadCameras() {
@@ -666,7 +672,7 @@ async function processScan(raw, manual = false) {
 }
 
 async function saveAttendance(qrCode, subjectId) {
-  const { data: student, error: studentErr } = await supabase
+  let { data: student, error: studentErr } = await supabase
     .from('students')
     .select(`
       id, name, nickname, grade_level, qr_code,
@@ -675,6 +681,21 @@ async function saveAttendance(qrCode, subjectId) {
     .eq('qr_code', qrCode)
     .eq('is_active', true)
     .maybeSingle()
+
+  if (isMissingGradeLevelError(studentErr)) {
+    supportsGradeLevel = false
+    const fallback = await supabase
+      .from('students')
+      .select(`
+        id, name, nickname, qr_code,
+        student_subjects ( subject_id, subjects ( id, name, color ) )
+      `)
+      .eq('qr_code', qrCode)
+      .eq('is_active', true)
+      .maybeSingle()
+    student = fallback.data ? { ...fallback.data, grade_level: null } : null
+    studentErr = fallback.error
+  }
 
   if (studentErr) throw new Error('ค้นหานักเรียนไม่สำเร็จ: ' + studentErr.message)
   if (!student) throw new Error('ไม่พบนักเรียนจาก QR นี้')
@@ -768,7 +789,7 @@ function showError(message) {
 }
 
 async function loadHistory() {
-  const { data, error } = await supabase
+  let { data, error } = await supabase
     .from('attendance_logs')
     .select(`
       id, check_in_at, check_out_at, duration_minutes,
@@ -777,6 +798,24 @@ async function loadHistory() {
     `)
     .order('created_at', { ascending: false })
     .limit(10)
+
+  if (isMissingGradeLevelError(error)) {
+    supportsGradeLevel = false
+    const fallback = await supabase
+      .from('attendance_logs')
+      .select(`
+        id, check_in_at, check_out_at, duration_minutes,
+        students ( name, nickname ),
+        subjects ( name, color )
+      `)
+      .order('created_at', { ascending: false })
+      .limit(10)
+    data = (fallback.data || []).map(row => ({
+      ...row,
+      students: row.students ? { ...row.students, grade_level: null } : row.students,
+    }))
+    error = fallback.error
+  }
 
   if (error) {
     historyEl.innerHTML = `

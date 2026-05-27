@@ -1,11 +1,14 @@
 import { supabase } from './supabase.js'
 
-// เรียกที่ต้นทุกหน้า (ยกเว้น login.html) — redirect ถ้าไม่ได้ login
+const LOGIN_PATH = '/login.html'
+const LOGOUT_TIMEOUT_MS = 3000
+
+let isLoggingOut = false
+
 export async function requireAuth() {
-  const { data: { session } } = await supabase.auth.getSession()
-  if (!session) {
-    window.location.replace('/login.html')
-  }
+  const { data: { session }, error } = await supabase.auth.getSession()
+  if (error) console.warn('Auth session check failed:', error)
+  if (!session) redirectToLogin()
   return session
 }
 
@@ -16,31 +19,56 @@ export async function login(email, password) {
 
 function clearStoredAuth() {
   for (const storage of [localStorage, sessionStorage]) {
-    Object.keys(storage).forEach(key => {
-      if (
-        key === 'supabase.auth.token' ||
-        key.includes('supabase.auth.token') ||
-        /^sb-.+-auth-token$/.test(key)
-      ) {
-        storage.removeItem(key)
-      }
-    })
+    try {
+      Object.keys(storage).forEach(key => {
+        if (
+          key === 'supabase.auth.token' ||
+          key.startsWith('supabase.auth.') ||
+          key.includes('supabase.auth.token') ||
+          /^sb-.+-auth-token/.test(key)
+        ) {
+          storage.removeItem(key)
+        }
+      })
+    } catch (err) {
+      console.warn('Unable to clear stored auth:', err)
+    }
   }
+}
+
+function redirectToLogin() {
+  if (window.location.pathname === LOGIN_PATH) return
+
+  const url = new URL(LOGIN_PATH, window.location.origin)
+  url.searchParams.set('logged_out', '1')
+  window.location.replace(url.pathname + url.search)
 }
 
 export async function logout(event) {
   event?.preventDefault?.()
-  event?.currentTarget?.setAttribute?.('disabled', 'true')
+  if (isLoggingOut) return
+  isLoggingOut = true
+
+  const button = event?.currentTarget
+  button?.setAttribute?.('disabled', 'true')
+  if (button) button.textContent = 'กำลังออก...'
 
   try {
     await Promise.race([
-      supabase.auth.signOut(),
-      new Promise(resolve => setTimeout(resolve, 2500)),
+      supabase.auth.signOut({ scope: 'global' }),
+      new Promise(resolve => setTimeout(resolve, LOGOUT_TIMEOUT_MS)),
     ])
   } catch (err) {
     console.warn('Logout fallback:', err)
   } finally {
     clearStoredAuth()
-    window.location.replace('/login.html')
+    redirectToLogin()
   }
 }
+
+supabase.auth.onAuthStateChange(event => {
+  if (event === 'SIGNED_OUT') {
+    clearStoredAuth()
+    redirectToLogin()
+  }
+})

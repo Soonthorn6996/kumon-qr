@@ -369,6 +369,7 @@ let openLogs = []
 let currentFilter = 'all'
 let toastTimer
 let reloadTimer
+let supportsGradeLevel = true
 
 async function init() {
   const session = await requireAuth()
@@ -462,10 +463,15 @@ function toast(msg, type = 'ok') {
   toastTimer = setTimeout(() => el.classList.remove('show'), 3200)
 }
 
+function isMissingGradeLevelError(error) {
+  const message = error?.message || error?.details || ''
+  return Boolean(error && /grade_level/i.test(message))
+}
+
 async function loadDashboard() {
   document.getElementById('statusText').textContent = 'กำลังโหลดข้อมูล...'
 
-  const [{ data: studentData, error: studentErr }, { data: logData, error: logErr }] = await Promise.all([
+  let [{ data: studentData, error: studentErr }, { data: logData, error: logErr }] = await Promise.all([
     supabase
       .from('students')
       .select(`
@@ -483,6 +489,20 @@ async function loadDashboard() {
       .is('check_out_at', null)
       .order('check_in_at', { ascending: false })
   ])
+
+  if (isMissingGradeLevelError(studentErr)) {
+    supportsGradeLevel = false
+    const fallback = await supabase
+      .from('students')
+      .select(`
+        id, name, nickname, created_at,
+        student_subjects ( subject_id, subjects ( id, name, color ) )
+      `)
+      .eq('is_active', true)
+      .order('name')
+    studentData = (fallback.data || []).map(student => ({ ...student, grade_level: null }))
+    studentErr = fallback.error
+  }
 
   if (studentErr) {
     showError('โหลดรายชื่อนักเรียนไม่สำเร็จ: ' + studentErr.message)

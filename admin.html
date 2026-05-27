@@ -560,6 +560,7 @@ import { supabase } from '/js/supabase.js'
 
 let students  = []
 let editingId = null   // null = add mode, uuid = edit mode
+let supportsGradeLevel = true
 const subjectIdCache = {}  // { 'MATH': uuid, 'THAI': uuid, 'ENG': uuid }
 
 // ── Init ─────────────────────────────────────────────────────
@@ -626,7 +627,7 @@ async function resolveSubjectId(name) {
 }
 
 async function loadStudents() {
-  const { data, error } = await supabase
+  let { data, error } = await supabase
     .from('students')
     .select(`
       id, name, nickname, grade_level, qr_code, created_at,
@@ -634,6 +635,20 @@ async function loadStudents() {
     `)
     .eq('is_active', true)
     .order('name')
+
+  if (isMissingGradeLevelError(error)) {
+    supportsGradeLevel = false
+    const fallback = await supabase
+      .from('students')
+      .select(`
+        id, name, nickname, qr_code, created_at,
+        student_subjects ( subject_id, subjects ( id, name, color ) )
+      `)
+      .eq('is_active', true)
+      .order('name')
+    data = (fallback.data || []).map(student => ({ ...student, grade_level: null }))
+    error = fallback.error
+  }
 
   if (error) { toast('โหลดข้อมูลนักเรียนไม่สำเร็จ: ' + error.message, 'err'); return }
   students = data || []
@@ -656,6 +671,11 @@ function subjectLabel(name = '') {
   if (c === 'thai')    return 'THAI'
   if (c === 'english') return 'ENG'
   return name
+}
+
+function isMissingGradeLevelError(error) {
+  const message = error?.message || error?.details || ''
+  return Boolean(error && /grade_level/i.test(message))
 }
 
 function normalizeStudentSubjects(subjectRows = []) {
@@ -846,17 +866,30 @@ async function submitForm(e) {
 
 async function doCreate({ name, nickname, grade_level, selected }) {
   const errEl = document.getElementById('addError')
+  const studentPayload = {
+    name,
+    nickname: nickname || null,
+    qr_code:  crypto.randomUUID(),
+  }
+  if (supportsGradeLevel) studentPayload.grade_level = grade_level || null
 
-  const { data: student, error } = await supabase
+  let { data: student, error } = await supabase
     .from('students')
-    .insert({
-      name,
-      nickname:    nickname    || null,
-      grade_level: grade_level || null,
-      qr_code:     crypto.randomUUID(),
-    })
+    .insert(studentPayload)
     .select('id')
     .single()
+
+  if (isMissingGradeLevelError(error)) {
+    supportsGradeLevel = false
+    delete studentPayload.grade_level
+    const fallback = await supabase
+      .from('students')
+      .insert(studentPayload)
+      .select('id')
+      .single()
+    student = fallback.data
+    error = fallback.error
+  }
 
   if (error) {
     errEl.textContent   = 'บันทึกไม่สำเร็จ: ' + error.message
@@ -888,15 +921,26 @@ async function doCreate({ name, nickname, grade_level, selected }) {
 
 async function doUpdate(id, { name, nickname, grade_level, selected }) {
   const errEl = document.getElementById('addError')
+  const studentPayload = {
+    name,
+    nickname: nickname || null,
+  }
+  if (supportsGradeLevel) studentPayload.grade_level = grade_level || null
 
-  const { error } = await supabase
+  let { error } = await supabase
     .from('students')
-    .update({
-      name,
-      nickname:    nickname    || null,
-      grade_level: grade_level || null,
-    })
+    .update(studentPayload)
     .eq('id', id)
+
+  if (isMissingGradeLevelError(error)) {
+    supportsGradeLevel = false
+    delete studentPayload.grade_level
+    const fallback = await supabase
+      .from('students')
+      .update(studentPayload)
+      .eq('id', id)
+    error = fallback.error
+  }
 
   if (error) {
     errEl.textContent   = 'แก้ไขไม่สำเร็จ: ' + error.message
