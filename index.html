@@ -216,11 +216,15 @@
 <script type="module">
   import { requireAuth, logout } from '/js/auth.js'
 
-  const session = await requireAuth()
-  if (!session) return
+  async function init() {
+    const session = await requireAuth()
+    if (!session) return
 
-  document.getElementById('userEmail').textContent = session.user.email
-  document.getElementById('logoutBtn').addEventListener('click', logout)
+    document.getElementById('userEmail').textContent = session.user.email
+    document.getElementById('logoutBtn').addEventListener('click', logout)
+  }
+
+  init()
 </script>
 <script src="/js/version.js"></script>
 
