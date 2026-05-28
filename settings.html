@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KUMON โพนพิสัย — ตั้งค่าระบบ</title>
+  <style>
+    :root {
+      --bg:       #eaf4fb;
+      --navy:     #1a4a6e;
+      --primary:  #f97316;
+      --gold:     #c9a227;
+      --blue:     #5ba4cf;
+      --text:     #1a202c;
+      --muted:    #5a7a92;
+      --border:   #c5e3f2;
+      --card:     #ffffff;
+      --error-bg: #fff7ed; --error-fg: #c2410c; --error-bd: #fdba74;
+      --ok-bg:    #f0fdf4; --ok-fg:    #166534; --ok-bd:    #86efac;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', Tahoma, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+    /* ── Nav ── */
+    nav { background: var(--navy); padding: 0 20px; height: 58px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 8px rgba(0,0,0,.2); }
+    .nav-brand { display: flex; align-items: center; gap: 10px; text-decoration: none; min-width: 0; }
+    .nav-brand img { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; border: 2px solid var(--gold); flex-shrink: 0; }
+    .nav-brand span { font-weight: 700; font-size: 1rem; color: white; letter-spacing: .3px; white-space: nowrap; }
+    .nav-right { display: flex; align-items: center; gap: 10px; }
+    .nav-email { font-size: .78rem; color: #a0c4dd; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .nav-link, .nav-logout { color: #a0c4dd; font-size: .8rem; text-decoration: none; padding: 5px 11px; border: 1px solid #3a6a90; border-radius: 6px; background: transparent; cursor: pointer; white-space: nowrap; }
+    .nav-link:hover, .nav-logout:hover { background: #3a6a90; color: white; }
+
+    /* ── Page top ── */
+    .page-top { background: linear-gradient(135deg, var(--navy) 0%, #2a6496 100%); padding: 22px 20px; color: white; }
+    .page-top-inner { max-width: 860px; margin: 0 auto; }
+    .page-top h2 { font-size: 1.2rem; font-weight: 700; }
+    .page-top p  { color: #a0c4dd; font-size: .82rem; margin-top: 3px; }
+
+    /* ── Layout ── */
+    .container { max-width: 860px; margin: 0 auto; padding: 22px 16px 40px; display: flex; flex-direction: column; gap: 18px; }
+
+    /* ── Section card ── */
+    .settings-section { background: var(--card); border-radius: 14px; box-shadow: 0 2px 10px rgba(26,74,110,.08); border: 1px solid rgba(197,227,242,.75); overflow: hidden; }
+    .section-head { padding: 18px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+    .section-head h3 { color: var(--navy); font-size: 1rem; font-weight: 700; }
+    .section-head p  { color: var(--muted); font-size: .78rem; margin-top: 2px; }
+    .section-body { padding: 20px; }
+
+    /* ── Language buttons ── */
+    .lang-buttons { display: flex; gap: 10px; margin-top: 4px; }
+    .lang-btn { padding: 9px 24px; border: 2px solid var(--border); border-radius: 10px; background: #f5fbff; color: var(--navy); font-size: .9rem; font-weight: 600; cursor: pointer; transition: all .15s; }
+    .lang-btn:hover  { border-color: var(--blue); }
+    .lang-btn.active { background: var(--navy); border-color: var(--navy); color: white; }
+
+    /* ── Create user form ── */
+    .create-form { background: #f8fafc; border: 1px solid var(--border); border-radius: 12px; padding: 18px; margin-bottom: 18px; display: none; }
+    .create-form.open { display: block; }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+    .form-group { display: flex; flex-direction: column; gap: 5px; }
+    .form-group label { font-size: .8rem; font-weight: 600; color: var(--navy); }
+    .form-group input { padding: 9px 12px; border: 1.5px solid var(--border); border-radius: 9px; font-size: .9rem; background: white; transition: border-color .2s, box-shadow .2s; }
+    .form-group input:focus { outline: none; border-color: var(--blue); box-shadow: 0 0 0 3px rgba(91,164,207,.18); }
+    .form-note { font-size: .76rem; color: #92400e; margin-bottom: 14px; padding: 9px 12px; background: #fff7ed; border: 1px solid #fdba74; border-radius: 8px; }
+    .form-actions { display: flex; gap: 10px; }
+
+    /* ── Buttons ── */
+    .btn { border: none; border-radius: 9px; padding: 9px 18px; font-size: .875rem; font-weight: 700; cursor: pointer; transition: opacity .15s, transform .1s; }
+    .btn:hover  { opacity: .88; }
+    .btn:active { transform: scale(.98); }
+    .btn:disabled { opacity: .5; cursor: not-allowed; }
+    .btn-primary { background: linear-gradient(135deg, var(--primary), #fb923c); color: white; box-shadow: 0 4px 12px rgba(249,115,22,.28); }
+    .btn-navy    { background: var(--navy); color: white; }
+    .btn-outline { background: transparent; border: 1.5px solid var(--border); color: var(--navy); }
+    .btn-outline:hover { background: #f1f5f9; }
+
+    /* ── Alert boxes ── */
+    .alert { border-radius: 10px; padding: 10px 14px; font-size: .875rem; margin-bottom: 14px; display: none; }
+    .alert.error   { background: var(--error-bg); border: 1px solid var(--error-bd); color: var(--error-fg); }
+    .alert.success { background: var(--ok-bg);    border: 1px solid var(--ok-bd);    color: var(--ok-fg);    }
+
+    /* ── Users table ── */
+    .users-table { width: 100%; border-collapse: collapse; font-size: .875rem; }
+    .users-table th { text-align: left; padding: 10px 14px; color: var(--muted); font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; border-bottom: 2px solid var(--border); }
+    .users-table td { padding: 12px 14px; border-bottom: 1px solid #f1f5f9; vertical-align: middle; }
+    .users-table tr:last-child td { border-bottom: none; }
+    .users-table tr:hover td { background: #f8fafc; }
+    .user-email  { color: var(--navy); font-weight: 600; }
+    .user-meta   { font-size: .75rem; color: var(--muted); margin-top: 2px; }
+    .you-badge   { display: inline-block; margin-left: 6px; padding: 2px 7px; border-radius: 999px; font-size: .68rem; font-weight: 700; background: #eff6ff; color: #1d4ed8; border: 1px solid #93c5fd; }
+
+    /* ── State box ── */
+    .state-box { text-align: center; padding: 28px; color: var(--muted); font-size: .9rem; }
+
+    /* ── Toast ── */
+    .toast { position: fixed; bottom: 24px; right: 20px; padding: 12px 20px; border-radius: 10px; font-size: .875rem; font-weight: 600; color: white; box-shadow: 0 6px 20px rgba(0,0,0,.2); transform: translateY(80px); opacity: 0; transition: transform .3s, opacity .3s; z-index: 500; pointer-events: none; max-width: 320px; }
+    .toast.show { transform: translateY(0); opacity: 1; }
+    .toast.ok  { background: #15803d; }
+    .toast.err { background: #b91c1c; }
+
+    @media (max-width: 640px) {
+      nav { padding: 0 14px; }
+      .nav-email, .nav-link { display: none; }
+      .form-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="/index.html" class="nav-brand">
+    <img src="/LOGO.jpg" alt="KUMON">
+    <span>KUMON โพนพิสัย</span>
+  </a>
+  <div class="nav-right">
+    <span class="nav-email" id="userEmail"></span>
+    <a href="/index.html" class="nav-link" id="navHome">← หน้าหลัก</a>
+    <button type="button" class="nav-logout" id="logoutBtn">ออก</button>
+  </div>
+</nav>
+
+<div class="page-top">
+  <div class="page-top-inner">
+    <h2 id="ttlPage">ตั้งค่าระบบ</h2>
+    <p id="ttlSub">ภาษา &amp; จัดการบัญชีผู้ใช้</p>
+  </div>
+</div>
+
+<main class="container">
+
+  <!-- ── Language ── -->
+  <div class="settings-section">
+    <div class="section-head">
+      <div>
+        <h3 id="ttlLang">ภาษา / Language</h3>
+        <p id="ttlLangDesc">เลือกภาษาที่ต้องการแสดงผล</p>
+      </div>
+    </div>
+    <div class="section-body">
+      <div class="lang-buttons">
+        <button class="lang-btn" id="langTh">ภาษาไทย</button>
+        <button class="lang-btn" id="langEn">English</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Users ── -->
+  <div class="settings-section">
+    <div class="section-head">
+      <div>
+        <h3 id="ttlUsers">บัญชีผู้ใช้</h3>
+        <p id="ttlUsersDesc">รายชื่อผู้ใช้งานทั้งหมดในระบบ</p>
+      </div>
+      <button class="btn btn-navy" id="toggleCreateBtn">+ สร้างผู้ใช้ใหม่</button>
+    </div>
+    <div class="section-body">
+
+      <div class="alert error"   id="formError"></div>
+      <div class="alert success" id="formSuccess"></div>
+
+      <!-- Create form -->
+      <div class="create-form" id="createForm">
+        <div class="form-grid">
+          <div class="form-group" style="grid-column:1/-1">
+            <label id="lblEmail">อีเมล</label>
+            <input type="email" id="newEmail" placeholder="staff@example.com">
+          </div>
+          <div class="form-group">
+            <label id="lblPwd">รหัสผ่าน</label>
+            <input type="password" id="newPassword" placeholder="อย่างน้อย 6 ตัวอักษร">
+          </div>
+          <div class="form-group">
+            <label id="lblConfirm">ยืนยันรหัสผ่าน</label>
+            <input type="password" id="confirmPassword" placeholder="พิมพ์รหัสผ่านอีกครั้ง">
+          </div>
+        </div>
+        <p class="form-note" id="formNote">⚠️ หากปิด Email Confirmation ใน Supabase ระบบจะ Sign Out อัตโนมัติหลังสร้างผู้ใช้ กรุณาเปิด Email Confirmation ไว้</p>
+        <div class="form-actions">
+          <button class="btn btn-primary" id="submitCreateBtn">สร้างบัญชี</button>
+          <button class="btn btn-outline" id="cancelCreateBtn">ยกเลิก</button>
+        </div>
+      </div>
+
+      <!-- Users list -->
+      <div id="usersState" class="state-box">กำลังโหลดรายชื่อผู้ใช้...</div>
+      <table class="users-table" id="usersTable" style="display:none">
+        <thead>
+          <tr>
+            <th id="colEmail">อีเมล</th>
+            <th id="colCreated">วันที่สร้าง</th>
+          </tr>
+        </thead>
+        <tbody id="usersBody"></tbody>
+      </table>
+
+    </div>
+  </div>
+
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script src="/js/config.js"></script>
+<script type="module">
+import { requireAuth, logout } from '/js/auth.js'
+import { supabase } from '/js/supabase.js'
+
+/* ─────────────────────────── i18n ─────────────────────────── */
+const T = {
+  th: {
+    navHome: '← หน้าหลัก', navLogout: 'ออก',
+    ttlPage: 'ตั้งค่าระบบ', ttlSub: 'ภาษา & จัดการบัญชีผู้ใช้',
+    ttlLang: 'ภาษา / Language', ttlLangDesc: 'เลือกภาษาที่ต้องการแสดงผล',
+    ttlUsers: 'บัญชีผู้ใช้', ttlUsersDesc: 'รายชื่อผู้ใช้งานทั้งหมดในระบบ',
+    toggleCreate: '+ สร้างผู้ใช้ใหม่',
+    lblEmail: 'อีเมล', lblPwd: 'รหัสผ่าน', lblConfirm: 'ยืนยันรหัสผ่าน',
+    phEmail: 'staff@example.com', phPwd: 'อย่างน้อย 6 ตัวอักษร', phConfirm: 'พิมพ์รหัสผ่านอีกครั้ง',
+    formNote: '⚠️ หากปิด Email Confirmation ใน Supabase ระบบจะ Sign Out อัตโนมัติหลังสร้างผู้ใช้ กรุณาเปิด Email Confirmation ไว้',
+    submitCreate: 'สร้างบัญชี', cancelCreate: 'ยกเลิก',
+    colEmail: 'อีเมล', colCreated: 'วันที่สร้าง',
+    loading: 'กำลังโหลดรายชื่อผู้ใช้...', empty: 'ยังไม่มีบัญชีผู้ใช้ในระบบ',
+    creating: 'กำลังสร้าง...',
+    errEmail: 'กรุณากรอกอีเมล',
+    errPwdLen: 'รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร',
+    errPwdMatch: 'รหัสผ่านไม่ตรงกัน',
+    successCreate: (email) => `สร้างบัญชี ${email} สำเร็จ กรุณาตรวจอีเมลเพื่อยืนยันบัญชี`,
+    noticeRelogin: (email) => `สร้างบัญชี ${email} สำเร็จแล้ว กรุณาเข้าสู่ระบบอีกครั้ง`,
+    migrationNote: 'ยังไม่ได้รัน Migration 005 กรุณาไปที่ Supabase Dashboard → SQL Editor แล้วรัน: supabase/migrations/005_add_profiles.sql',
+    youBadge: 'คุณ',
+  },
+  en: {
+    navHome: '← Home', navLogout: 'Logout',
+    ttlPage: 'System Settings', ttlSub: 'Language & User Management',
+    ttlLang: 'Language', ttlLangDesc: 'Select display language',
+    ttlUsers: 'User Accounts', ttlUsersDesc: 'All system user accounts',
+    toggleCreate: '+ Create New User',
+    lblEmail: 'Email', lblPwd: 'Password', lblConfirm: 'Confirm Password',
+    phEmail: 'staff@example.com', phPwd: 'At least 6 characters', phConfirm: 'Re-enter password',
+    formNote: '⚠️ If Email Confirmation is disabled in Supabase, the system will auto sign-out after creating a user. Please enable Email Confirmation.',
+    submitCreate: 'Create Account', cancelCreate: 'Cancel',
+    colEmail: 'Email', colCreated: 'Created At',
+    loading: 'Loading users...', empty: 'No user accounts found',
+    creating: 'Creating...',
+    errEmail: 'Please enter email',
+    errPwdLen: 'Password must be at least 6 characters',
+    errPwdMatch: 'Passwords do not match',
+    successCreate: (email) => `Account ${email} created. Please check email for confirmation.`,
+    noticeRelogin: (email) => `Account ${email} created. Please log in again.`,
+    migrationNote: 'Migration 005 not yet applied. Go to Supabase Dashboard → SQL Editor and run: supabase/migrations/005_add_profiles.sql',
+    youBadge: 'You',
+  }
+}
+
+function getLang() { return localStorage.getItem('classscan_lang') || 'th' }
+function setLang(lang) { localStorage.setItem('classscan_lang', lang); document.documentElement.lang = lang }
+function t(key, ...args) {
+  const val = T[getLang()]?.[key] ?? T.th[key] ?? key
+  return typeof val === 'function' ? val(...args) : val
+}
+
+function applyLang() {
+  const l = getLang()
+  // Text nodes
+  const ids = ['navHome','navLogout','ttlPage','ttlSub','ttlLang','ttlLangDesc',
+                'ttlUsers','ttlUsersDesc','toggleCreateBtn','lblEmail','lblPwd',
+                'lblConfirm','formNote','submitCreateBtn','cancelCreateBtn',
+                'colEmail','colCreated']
+  const keyMap = { toggleCreateBtn: 'toggleCreate', submitCreateBtn: 'submitCreate', cancelCreateBtn: 'cancelCreate' }
+  ids.forEach(id => {
+    const el = document.getElementById(id)
+    if (el) el.textContent = t(keyMap[id] || id)
+  })
+  // Placeholders
+  document.getElementById('newEmail').placeholder      = t('phEmail')
+  document.getElementById('newPassword').placeholder   = t('phPwd')
+  document.getElementById('confirmPassword').placeholder = t('phConfirm')
+  // Logout button
+  document.getElementById('logoutBtn').textContent = t('navLogout')
+  // Lang buttons active state
+  document.getElementById('langTh').classList.toggle('active', l === 'th')
+  document.getElementById('langEn').classList.toggle('active', l === 'en')
+}
+
+/* ─────────────────────────── Helpers ─────────────────────────── */
+let currentUserEmail = ''
+let toastTimer
+
+function toast(msg, type = 'ok') {
+  const el = document.getElementById('toast')
+  el.textContent = msg
+  el.className = `toast ${type} show`
+  clearTimeout(toastTimer)
+  toastTimer = setTimeout(() => el.classList.remove('show'), 4000)
+}
+
+function showAlert(type, msg) {
+  const err = document.getElementById('formError')
+  const ok  = document.getElementById('formSuccess')
+  err.style.display = 'none'
+  ok.style.display  = 'none'
+  if (!msg) return
+  if (type === 'error')   { err.textContent = msg; err.style.display = 'block' }
+  if (type === 'success') { ok.textContent  = msg; ok.style.display  = 'block' }
+}
+
+function escapeHtml(v) {
+  return String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]))
+}
+
+function fmtDate(v) {
+  if (!v) return '-'
+  return new Intl.DateTimeFormat('th-TH', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }).format(new Date(v))
+}
+
+/* ─────────────────────────── Load users ─────────────────────────── */
+async function loadUsers() {
+  const stateEl = document.getElementById('usersState')
+  const tableEl = document.getElementById('usersTable')
+  const bodyEl  = document.getElementById('usersBody')
+
+  stateEl.textContent = t('loading')
+  stateEl.style.display = 'block'
+  tableEl.style.display = 'none'
+
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('id, email, display_name, created_at')
+    .order('created_at', { ascending: true })
+
+  if (error) {
+    if (/relation.*does not exist|profiles.*not found/i.test(error.message || '')) {
+      stateEl.innerHTML = `<div style="max-width:520px;margin:0 auto;text-align:left">
+        <p style="color:var(--error-fg);font-weight:700;margin-bottom:8px">⚠️ ${escapeHtml(t('migrationNote').split('.')[0])}</p>
+        <p style="color:var(--muted);margin-bottom:10px;font-size:.85rem">${escapeHtml(t('migrationNote').split('.').slice(1).join('.').trim())}</p>
+        <pre style="background:#f1f5f9;padding:12px;border-radius:8px;font-size:.8rem;text-align:left;white-space:pre-wrap">supabase/migrations/005_add_profiles.sql</pre>
+      </div>`
+    } else {
+      stateEl.textContent = error.message
+    }
+    return
+  }
+
+  if (!data?.length) {
+    stateEl.textContent = t('empty')
+    return
+  }
+
+  stateEl.style.display = 'none'
+  tableEl.style.display = 'table'
+  bodyEl.innerHTML = data.map(u => {
+    const isYou = u.email === currentUserEmail
+    return `
+      <tr>
+        <td>
+          <div class="user-email">
+            ${escapeHtml(u.email)}
+            ${isYou ? `<span class="you-badge">${escapeHtml(t('youBadge'))}</span>` : ''}
+          </div>
+          ${u.display_name ? `<div class="user-meta">${escapeHtml(u.display_name)}</div>` : ''}
+        </td>
+        <td style="color:var(--muted);font-size:.82rem;white-space:nowrap">${fmtDate(u.created_at)}</td>
+      </tr>`
+  }).join('')
+}
+
+/* ─────────────────────────── Create user ─────────────────────────── */
+async function handleCreateUser() {
+  const email   = document.getElementById('newEmail').value.trim()
+  const password = document.getElementById('newPassword').value
+  const confirm  = document.getElementById('confirmPassword').value
+
+  showAlert(null)
+  if (!email)            return showAlert('error', t('errEmail'))
+  if (password.length < 6) return showAlert('error', t('errPwdLen'))
+  if (password !== confirm) return showAlert('error', t('errPwdMatch'))
+
+  const btn = document.getElementById('submitCreateBtn')
+  btn.disabled = true
+  btn.textContent = t('creating')
+
+  const { data, error } = await supabase.auth.signUp({ email, password })
+
+  btn.disabled = false
+  btn.textContent = t('submitCreate')
+
+  if (error) return showAlert('error', error.message)
+
+  // Safety net: upsert into profiles (trigger handles it, this is fallback)
+  if (data.user) {
+    await supabase.from('profiles').upsert({
+      id: data.user.id,
+      email: data.user.email,
+      created_at: data.user.created_at || new Date().toISOString()
+    }).select()
+  }
+
+  // Check if admin got signed out (happens when email confirmation is OFF)
+  const { data: { session } } = await supabase.auth.getSession()
+  if (!session || session.user.email !== currentUserEmail) {
+    localStorage.setItem('classscan_notice', t('noticeRelogin', email))
+    window.location.href = '/login.html'
+    return
+  }
+
+  showAlert('success', t('successCreate', email))
+  document.getElementById('newEmail').value = ''
+  document.getElementById('newPassword').value = ''
+  document.getElementById('confirmPassword').value = ''
+
+  await loadUsers()
+}
+
+/* ─────────────────────────── Init ─────────────────────────── */
+async function init() {
+  const session = await requireAuth()
+  if (!session) return
+
+  currentUserEmail = session.user.email
+  document.getElementById('userEmail').textContent = currentUserEmail
+  document.getElementById('logoutBtn').addEventListener('click', logout)
+
+  // Language toggle
+  document.getElementById('langTh').addEventListener('click', () => { setLang('th'); applyLang() })
+  document.getElementById('langEn').addEventListener('click', () => { setLang('en'); applyLang() })
+
+  // Create user form
+  const createForm = document.getElementById('createForm')
+  document.getElementById('toggleCreateBtn').addEventListener('click', () => {
+    const open = createForm.classList.contains('open')
+    createForm.classList.toggle('open', !open)
+    showAlert(null)
+  })
+  document.getElementById('cancelCreateBtn').addEventListener('click', () => {
+    createForm.classList.remove('open')
+    showAlert(null)
+  })
+  document.getElementById('submitCreateBtn').addEventListener('click', handleCreateUser)
+
+  applyLang()
+  await loadUsers()
+}
+
+init()
+</script>
+<script src="/js/version.js"></script>
+</body>
+</html>

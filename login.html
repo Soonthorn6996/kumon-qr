@@ -277,6 +277,14 @@
   const { data: { session } } = await supabase.auth.getSession()
   if (session) window.location.href = '/index.html'
 
+  // แสดงข้อความจาก redirect (เช่น หลังสร้าง user ใหม่)
+  const notice = localStorage.getItem('classscan_notice')
+  if (notice) {
+    localStorage.removeItem('classscan_notice')
+    document.getElementById('successMsg').textContent = notice
+    document.getElementById('successMsg').style.display = 'block'
+  }
+
   const form        = document.getElementById('loginForm')
   const errEl       = document.getElementById('errorMsg')
   const successEl   = document.getElementById('successMsg')
