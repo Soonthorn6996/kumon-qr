@@ -1,0 +1,959 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>คู่มือการใช้งาน ClassScan — KUMON โพนพิสัย</title>
+  <style>
+    :root {
+      --navy:    #1a4a6e;
+      --primary: #f97316;
+      --gold:    #c9a227;
+      --blue:    #5ba4cf;
+      --muted:   #5a7a92;
+      --border:  #c5e3f2;
+      --bg:      #f8fafc;
+      --text:    #1a202c;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, 'Noto Sans Thai', sans-serif;
+      background: white;
+      color: var(--text);
+      font-size: 13pt;
+      line-height: 1.65;
+    }
+
+    /* ── Screen nav (hidden on print) ── */
+    .screen-nav {
+      background: var(--navy);
+      padding: 12px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .screen-nav span { color: white; font-weight: 700; font-size: 1rem; }
+    .screen-nav button {
+      background: var(--primary); border: none; color: white;
+      padding: 8px 18px; border-radius: 8px; font-size: .9rem; cursor: pointer; font-weight: 700;
+    }
+    .screen-nav button:hover { background: #ea6a00; }
+
+    /* ── Page layout ── */
+    .page {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 0 32px;
+    }
+
+    /* ── Cover ── */
+    .cover {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 60px 40px;
+      background: linear-gradient(160deg, var(--navy) 0%, #2a6496 60%, #1a4a6e 100%);
+      color: white;
+      page-break-after: always;
+    }
+
+    .cover-logo {
+      width: 90px; height: 90px;
+      border-radius: 50%;
+      background: white;
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 28px;
+      box-shadow: 0 8px 32px rgba(0,0,0,.3);
+      overflow: hidden;
+    }
+    .cover-logo img { width: 86px; height: 86px; border-radius: 50%; object-fit: cover; }
+
+    .cover h1 {
+      font-size: 2.4rem;
+      font-weight: 900;
+      letter-spacing: .5px;
+      margin-bottom: 10px;
+      color: #fbbf24;
+    }
+    .cover h2 { font-size: 1.3rem; font-weight: 400; color: #93c5fd; margin-bottom: 6px; }
+    .cover .version { font-size: .85rem; color: #7dd3fc; margin-top: 4px; }
+    .cover-divider { width: 60px; height: 3px; background: var(--gold); border-radius: 2px; margin: 24px auto; }
+    .cover-center { font-size: 1.1rem; color: #bfdbfe; line-height: 1.7; }
+    .cover-footer {
+      margin-top: auto;
+      padding-top: 40px;
+      font-size: .82rem;
+      color: #7dd3fc;
+    }
+
+    /* ── TOC ── */
+    .toc-page {
+      padding: 60px 40px;
+      page-break-after: always;
+    }
+    .toc-title {
+      font-size: 1.5rem;
+      font-weight: 800;
+      color: var(--navy);
+      border-bottom: 3px solid var(--primary);
+      padding-bottom: 10px;
+      margin-bottom: 28px;
+    }
+    .toc-list { list-style: none; }
+    .toc-list li {
+      display: flex;
+      align-items: baseline;
+      gap: 0;
+      padding: 7px 0;
+      border-bottom: 1px dashed var(--border);
+      font-size: 1rem;
+    }
+    .toc-list li .toc-num {
+      width: 30px;
+      font-weight: 700;
+      color: var(--primary);
+      flex-shrink: 0;
+    }
+    .toc-list li .toc-name { flex: 1; color: var(--navy); font-weight: 600; }
+    .toc-list li .toc-role { font-size: .8rem; color: var(--muted); white-space: nowrap; margin-left: 8px; }
+    .toc-dots { flex: 1; border-bottom: 1px dotted #cbd5e1; margin: 0 8px; position: relative; top: -3px; }
+
+    /* ── Section pages ── */
+    .section {
+      padding: 48px 40px 40px;
+      page-break-before: always;
+    }
+
+    .section-header {
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+      margin-bottom: 24px;
+      padding-bottom: 16px;
+      border-bottom: 2px solid var(--border);
+    }
+
+    .section-icon {
+      font-size: 2.4rem;
+      line-height: 1;
+      flex-shrink: 0;
+    }
+
+    .section-header-text h2 {
+      font-size: 1.5rem;
+      font-weight: 800;
+      color: var(--navy);
+      margin-bottom: 4px;
+    }
+    .section-header-text p { font-size: .88rem; color: var(--muted); }
+
+    .role-pills { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+    .role-pill {
+      font-size: .73rem;
+      font-weight: 700;
+      padding: 3px 9px;
+      border-radius: 999px;
+    }
+    .role-admin   { background: #fef3c7; color: #92400e; border: 1px solid #fcd34d; }
+    .role-teacher { background: #e0f2fe; color: #0c4a6e; border: 1px solid #7dd3fc; }
+    .role-view    { background: #f0fdf4; color: #14532d; border: 1px solid #86efac; }
+
+    /* ── Content blocks ── */
+    .content-block { margin-bottom: 22px; }
+
+    .block-title {
+      font-size: .82rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: .6px;
+      color: var(--muted);
+      margin-bottom: 10px;
+    }
+
+    ol.steps { padding-left: 0; list-style: none; counter-reset: step; }
+    ol.steps li {
+      counter-increment: step;
+      display: flex;
+      gap: 12px;
+      margin-bottom: 10px;
+      align-items: flex-start;
+    }
+    ol.steps li::before {
+      content: counter(step);
+      background: var(--navy);
+      color: white;
+      font-size: .75rem;
+      font-weight: 700;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    ul.bullets { list-style: none; padding-left: 0; }
+    ul.bullets li {
+      padding: 5px 0 5px 20px;
+      position: relative;
+      font-size: .93rem;
+    }
+    ul.bullets li::before {
+      content: '▸';
+      position: absolute;
+      left: 0;
+      color: var(--primary);
+      font-size: .85rem;
+    }
+
+    .note-box {
+      background: #fff7ed;
+      border: 1px solid #fdba74;
+      border-left: 4px solid var(--primary);
+      border-radius: 8px;
+      padding: 12px 16px;
+      font-size: .88rem;
+      color: #7c2d12;
+      margin-top: 14px;
+    }
+    .note-box strong { color: #9a3412; }
+
+    .tip-box {
+      background: #eff6ff;
+      border: 1px solid #93c5fd;
+      border-left: 4px solid var(--blue);
+      border-radius: 8px;
+      padding: 12px 16px;
+      font-size: .88rem;
+      color: #1e3a5f;
+      margin-top: 14px;
+    }
+
+    /* ── Permission table ── */
+    table.perm-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .88rem;
+      margin-top: 10px;
+    }
+    table.perm-table th {
+      background: var(--navy);
+      color: white;
+      padding: 9px 14px;
+      text-align: left;
+      font-weight: 700;
+    }
+    table.perm-table td {
+      padding: 9px 14px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: middle;
+    }
+    table.perm-table tr:nth-child(even) td { background: #f8fafc; }
+    .check { color: #16a34a; font-size: 1.1rem; }
+    .cross { color: #dc2626; font-size: 1.1rem; }
+
+    /* ── Divider between sub-sections ── */
+    hr.soft { border: none; border-top: 1px solid var(--border); margin: 18px 0; }
+
+    /* ── Screen only ── */
+    @media screen {
+      body { background: #e2e8f0; }
+      .cover, .toc-page, .section { background: white; margin: 24px auto; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,.12); }
+      .cover { max-width: 800px; min-height: auto; padding: 60px 40px; }
+      .toc-page { max-width: 800px; }
+      .section { max-width: 800px; }
+    }
+
+    /* ── Print ── */
+    @media print {
+      body { font-size: 11pt; }
+      .screen-nav { display: none !important; }
+      .cover {
+        min-height: 100vh;
+        margin: 0; padding: 60pt 50pt;
+        border-radius: 0;
+        box-shadow: none;
+      }
+      .toc-page, .section { padding: 50pt 50pt; border-radius: 0; box-shadow: none; margin: 0; }
+      .cover h1 { font-size: 28pt; }
+      .cover h2 { font-size: 14pt; }
+      .section-header-text h2 { font-size: 16pt; }
+    }
+
+    @page { margin: 0; size: A4; }
+    @page :first { margin: 0; }
+  </style>
+</head>
+<body>
+
+<!-- Screen nav (won't print) -->
+<div class="screen-nav">
+  <span>📖 คู่มือการใช้งาน ClassScan</span>
+  <button onclick="window.print()">🖨️ บันทึกเป็น PDF</button>
+</div>
+
+<!-- ════════════════════════════════════════════
+     COVER
+═════════════════════════════════════════════ -->
+<div class="cover">
+  <div class="cover-logo">
+    <img src="/LOGO.jpg" alt="KUMON" onerror="this.parentElement.innerHTML='📚'">
+  </div>
+  <h1>ClassScan</h1>
+  <h2>ระบบลงเวลาเรียนด้วย QR Code</h2>
+  <div class="version">เวอร์ชัน 1.3.0 · 28 พฤษภาคม 2569</div>
+  <div class="cover-divider"></div>
+  <div class="cover-center">
+    คู่มือการใช้งานสำหรับเจ้าหน้าที่<br>
+    ศูนย์การเรียนกู้มอน สาขาโพนพิสัย
+  </div>
+  <div class="cover-footer">
+    จัดทำโดยระบบ ClassScan · KUMON Phonphisai
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════
+     TABLE OF CONTENTS
+═════════════════════════════════════════════ -->
+<div class="toc-page page">
+  <div class="toc-title">สารบัญ</div>
+  <ul class="toc-list">
+    <li>
+      <span class="toc-num">1.</span>
+      <span class="toc-name">สิทธิ์การใช้งาน (บทบาทผู้ใช้)</span>
+      <span class="toc-dots"></span>
+      <span class="toc-role">ภาพรวม</span>
+    </li>
+    <li>
+      <span class="toc-num">2.</span>
+      <span class="toc-name">เข้าสู่ระบบ (Login)</span>
+      <span class="toc-dots"></span>
+      <span class="toc-role">ทุกบทบาท</span>
+    </li>
+    <li>
+      <span class="toc-num">3.</span>
+      <span class="toc-name">หน้าหลัก (Home)</span>
+      <span class="toc-dots"></span>
+      <span class="toc-role">ทุกบทบาท</span>
+    </li>
+    <li>
+      <span class="toc-num">4.</span>
+      <span class="toc-name">Dashboard — สถานะนักเรียน</span>
+      <span class="toc-dots"></span>
+      <span class="toc-role">ทุกบทบาท</span>
+    </li>
+    <li>
+      <span class="toc-num">5.</span>
+      <span class="toc-name">สแกน QR — บันทึกเข้า/ออก</span>
+      <span class="toc-dots"></span>
+      <span class="toc-role">Admin · ครูผู้ช่วย</span>
+    </li>
+    <li>
+      <span class="toc-num">6.</span>
+      <span class="toc-name">จัดการนักเรียน</span>
+      <span class="toc-dots"></span>
+      <span class="toc-role">Admin · ครูผู้ช่วย</span>
+    </li>
+    <li>
+      <span class="toc-num">7.</span>
+      <span class="toc-name">การแจ้งเตือน</span>
+      <span class="toc-dots"></span>
+      <span class="toc-role">Admin · ครูผู้ช่วย</span>
+    </li>
+    <li>
+      <span class="toc-num">8.</span>
+      <span class="toc-name">บันทึกพัฒนาการ</span>
+      <span class="toc-dots"></span>
+      <span class="toc-role">ทุกบทบาท</span>
+    </li>
+    <li>
+      <span class="toc-num">9.</span>
+      <span class="toc-name">ตั้งค่าระบบ</span>
+      <span class="toc-dots"></span>
+      <span class="toc-role">Admin</span>
+    </li>
+  </ul>
+
+  <div style="margin-top:36px; padding:18px; background:#f8fafc; border-radius:10px; border:1px solid var(--border);">
+    <div style="font-weight:800; color:var(--navy); margin-bottom:10px;">คำอธิบายบทบาทผู้ใช้</div>
+    <table class="perm-table" style="font-size:.85rem;">
+      <tr>
+        <th>บทบาท</th>
+        <th>คำอธิบาย</th>
+        <th>ตัวอย่างผู้ใช้</th>
+      </tr>
+      <tr>
+        <td><span class="role-pill role-admin">Admin</span></td>
+        <td>เข้าถึงทุกหน้า จัดการระบบและบัญชีผู้ใช้ทั้งหมด</td>
+        <td>ผู้ดูแลศูนย์ / เจ้าของ</td>
+      </tr>
+      <tr>
+        <td><span class="role-pill role-teacher">ครูผู้ช่วย</span></td>
+        <td>สแกน จัดการนักเรียน เขียนบันทึก ตั้งค่าแจ้งเตือน</td>
+        <td>ครูประจำศูนย์</td>
+      </tr>
+      <tr>
+        <td><span class="role-pill role-view">ดูอย่างเดียว</span></td>
+        <td>ดู Dashboard และอ่านบันทึกพัฒนาการ</td>
+        <td>ผู้ปกครองนักเรียน</td>
+      </tr>
+    </table>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════
+     1. ROLES OVERVIEW
+═════════════════════════════════════════════ -->
+<div class="section page">
+  <div class="section-header">
+    <div class="section-icon">🔐</div>
+    <div class="section-header-text">
+      <h2>1. สิทธิ์การใช้งาน</h2>
+      <p>ตารางสรุปว่าแต่ละบทบาทเข้าถึงหน้าใดได้บ้าง</p>
+    </div>
+  </div>
+
+  <table class="perm-table">
+    <tr>
+      <th>หน้า / ฟีเจอร์</th>
+      <th>Admin</th>
+      <th>ครูผู้ช่วย</th>
+      <th>ดูอย่างเดียว</th>
+    </tr>
+    <tr>
+      <td>🏠 หน้าหลัก</td>
+      <td class="check">✔</td><td class="check">✔</td><td class="check">✔</td>
+    </tr>
+    <tr>
+      <td>📊 Dashboard (ดูสถานะ)</td>
+      <td class="check">✔</td><td class="check">✔</td><td class="check">✔</td>
+    </tr>
+    <tr>
+      <td>📷 สแกน QR</td>
+      <td class="check">✔</td><td class="check">✔</td><td class="cross">✗</td>
+    </tr>
+    <tr>
+      <td>👨‍🎓 จัดการนักเรียน</td>
+      <td class="check">✔</td><td class="check">✔</td><td class="cross">✗</td>
+    </tr>
+    <tr>
+      <td>🔔 การแจ้งเตือน</td>
+      <td class="check">✔</td><td class="check">✔</td><td class="cross">✗</td>
+    </tr>
+    <tr>
+      <td>📝 บันทึกพัฒนาการ — เขียน</td>
+      <td class="check">✔</td><td class="check">✔</td><td class="cross">✗</td>
+    </tr>
+    <tr>
+      <td>📝 บันทึกพัฒนาการ — อ่าน</td>
+      <td class="check">✔</td><td class="check">✔</td>
+      <td style="color:#16a34a; font-size:.85rem; font-weight:600;">✔ เฉพาะนักเรียนที่ติดตาม</td>
+    </tr>
+    <tr>
+      <td>⚙️ ตั้งค่าระบบ / สร้างบัญชีผู้ใช้</td>
+      <td class="check">✔</td><td class="cross">✗</td><td class="cross">✗</td>
+    </tr>
+  </table>
+
+  <div class="tip-box" style="margin-top:20px;">
+    <strong>หมายเหตุ:</strong> หากเข้าถึงหน้าที่ไม่มีสิทธิ์ ระบบจะพาไปหน้า Dashboard โดยอัตโนมัติ
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════
+     2. LOGIN
+═════════════════════════════════════════════ -->
+<div class="section page">
+  <div class="section-header">
+    <div class="section-icon">🔑</div>
+    <div class="section-header-text">
+      <h2>2. เข้าสู่ระบบ</h2>
+      <p>login.html — เปิดหน้าแรกที่ต้องทำก่อนใช้งานทุกครั้ง</p>
+      <div class="role-pills">
+        <span class="role-pill role-admin">Admin</span>
+        <span class="role-pill role-teacher">ครูผู้ช่วย</span>
+        <span class="role-pill role-view">ดูอย่างเดียว</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="content-block">
+    <div class="block-title">วิธีเข้าสู่ระบบ</div>
+    <ol class="steps">
+      <li>เปิดเว็บไซต์ศูนย์ เช่น <strong>https://kumon-qr.vercel.app/login.html</strong></li>
+      <li>กรอก <strong>อีเมล</strong> ที่ได้รับจากผู้ดูแลระบบ</li>
+      <li>กรอก <strong>รหัสผ่าน</strong> (อย่างน้อย 6 ตัวอักษร)</li>
+      <li>ทำเครื่องหมาย <strong>"จำการเข้าสู่ระบบ"</strong> หากใช้อุปกรณ์ส่วนตัว</li>
+      <li>กดปุ่ม <strong>"เข้าสู่ระบบ"</strong> — ระบบจะพาไปหน้าหลักโดยอัตโนมัติ</li>
+    </ol>
+  </div>
+
+  <div class="content-block">
+    <div class="block-title">ออกจากระบบ</div>
+    <ul class="bullets">
+      <li>กดปุ่ม <strong>"ออกจากระบบ"</strong> หรือ <strong>"ออก"</strong> ที่มุมบนขวาของทุกหน้า</li>
+      <li>ระบบจะล้าง Session และกลับมาหน้า Login ทันที</li>
+    </ul>
+  </div>
+
+  <div class="note-box">
+    <strong>⚠️ ความปลอดภัย:</strong> หากใช้คอมพิวเตอร์สาธารณะ ควรออกจากระบบทุกครั้งหลังใช้งาน และไม่ควรติ๊ก "จำการเข้าสู่ระบบ"
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════
+     3. HOME
+═════════════════════════════════════════════ -->
+<div class="section page">
+  <div class="section-header">
+    <div class="section-icon">🏠</div>
+    <div class="section-header-text">
+      <h2>3. หน้าหลัก</h2>
+      <p>index.html — เมนูหลักสำหรับเข้าถึงทุกส่วนของระบบ</p>
+      <div class="role-pills">
+        <span class="role-pill role-admin">Admin</span>
+        <span class="role-pill role-teacher">ครูผู้ช่วย</span>
+        <span class="role-pill role-view">ดูอย่างเดียว</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="content-block">
+    <div class="block-title">เมนูที่แสดงตามบทบาท</div>
+    <table class="perm-table">
+      <tr>
+        <th>เมนู</th>
+        <th>Admin</th>
+        <th>ครูผู้ช่วย</th>
+        <th>ดูอย่างเดียว</th>
+      </tr>
+      <tr>
+        <td>📷 สแกน QR</td>
+        <td class="check">✔</td><td class="check">✔</td><td class="cross">✗</td>
+      </tr>
+      <tr>
+        <td>📊 Dashboard</td>
+        <td class="check">✔</td><td class="check">✔</td><td class="check">✔</td>
+      </tr>
+      <tr>
+        <td>👨‍🎓 จัดการนักเรียน</td>
+        <td class="check">✔</td><td class="check">✔</td><td class="cross">✗</td>
+      </tr>
+      <tr>
+        <td>⚙️ ตั้งค่าระบบ</td>
+        <td class="check">✔</td><td class="cross">✗</td><td class="cross">✗</td>
+      </tr>
+      <tr>
+        <td>🔔 การแจ้งเตือน</td>
+        <td class="check">✔</td><td class="check">✔</td><td class="cross">✗</td>
+      </tr>
+      <tr>
+        <td>📝 บันทึกพัฒนาการ</td>
+        <td class="check">✔</td><td class="check">✔</td><td class="check">✔</td>
+      </tr>
+    </table>
+  </div>
+
+  <div class="content-block">
+    <div class="block-title">การเปลี่ยนภาษา</div>
+    <ul class="bullets">
+      <li>ภาษาถูกตั้งค่าจากหน้า <strong>ตั้งค่าระบบ</strong> (Admin) โดยระบบจำภาษาที่เลือกไว้ในเบราว์เซอร์</li>
+      <li>รองรับ <strong>ภาษาไทย</strong> และ <strong>ภาษาอังกฤษ</strong> ทุกหน้า</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════
+     4. DASHBOARD
+═════════════════════════════════════════════ -->
+<div class="section page">
+  <div class="section-header">
+    <div class="section-icon">📊</div>
+    <div class="section-header-text">
+      <h2>4. Dashboard — สถานะนักเรียน</h2>
+      <p>dashboard.html — ดูสถานะนักเรียนแบบ Realtime และเขียนบันทึก</p>
+      <div class="role-pills">
+        <span class="role-pill role-admin">Admin</span>
+        <span class="role-pill role-teacher">ครูผู้ช่วย</span>
+        <span class="role-pill role-view">ดูอย่างเดียว</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="content-block">
+    <div class="block-title">สรุปสถิติด้านบน (4 ช่อง)</div>
+    <ul class="bullets">
+      <li><strong>นักเรียนทั้งหมด</strong> — จำนวน active ทั้งหมดในระบบ</li>
+      <li><strong>กำลังเรียน</strong> — มีรายการ check-in ที่ยังไม่ออก</li>
+      <li><strong>ว่าง/ยังไม่เข้า</strong> — ยังไม่มีรายการวันนี้ หรือ check-out แล้ว</li>
+      <li><strong>รายการเปิดอยู่</strong> — จำนวน session ที่ยังค้างอยู่ (อาจ &gt; นักเรียน ถ้าเรียนหลายวิชา)</li>
+    </ul>
+  </div>
+
+  <div class="content-block">
+    <div class="block-title">ตัวกรองนักเรียน</div>
+    <ul class="bullets">
+      <li><strong>ทั้งหมด / กำลังเรียน / ว่าง</strong> — กรองตามสถานะ</li>
+      <li><strong>ทุกวิชา / MATH / THAI / ENG</strong> — กรองตามวิชาที่ลงทะเบียน</li>
+      <li>สามารถใช้ตัวกรองทั้งสองพร้อมกันได้ เช่น ดูเฉพาะ "กำลังเรียน" วิชา "MATH"</li>
+    </ul>
+  </div>
+
+  <div class="content-block">
+    <div class="block-title">การ์ดนักเรียนแต่ละใบแสดง</div>
+    <ul class="bullets">
+      <li>ชื่อ-ชื่อเล่น และสถานะ (สีส้ม = กำลังเรียน / สีเขียว = ว่าง)</li>
+      <li>แถบวิชาที่ลงทะเบียน (MATH/THAI/ENG) และระดับชั้น</li>
+      <li>รายละเอียด session ปัจจุบัน: วิชา เวลาเข้า ระยะเวลา</li>
+      <li><strong>จำนวนบันทึกวันนี้</strong> (📝 X บันทึกวันนี้) — อัปเดตอัตโนมัติ</li>
+    </ul>
+  </div>
+
+  <div class="content-block">
+    <div class="block-title">เขียนบันทึกพัฒนาการจาก Dashboard (Admin / ครูผู้ช่วย)</div>
+    <ol class="steps">
+      <li>กดปุ่ม <strong>"✏️ บันทึก"</strong> บนการ์ดนักเรียนที่ต้องการ</li>
+      <li>พิมพ์บันทึกในช่องที่ปรากฏ (กด Ctrl+Enter เพื่อบันทึกเร็ว)</li>
+      <li>กดปุ่ม <strong>"บันทึก"</strong> — ระบบจะอัปเดตจำนวนบันทึกบนการ์ดทันที</li>
+    </ol>
+  </div>
+
+  <div class="tip-box">
+    <strong>Realtime:</strong> หน้า Dashboard อัปเดตสถานะโดยอัตโนมัติเมื่อมีการสแกน QR ไม่ต้องรีโหลดหน้า
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════
+     5. SCAN
+═════════════════════════════════════════════ -->
+<div class="section page">
+  <div class="section-header">
+    <div class="section-icon">📷</div>
+    <div class="section-header-text">
+      <h2>5. สแกน QR — บันทึกเข้า/ออก</h2>
+      <p>scan.html — บันทึกเวลาเข้าและออกห้องเรียนด้วยกล้องมือถือ</p>
+      <div class="role-pills">
+        <span class="role-pill role-admin">Admin</span>
+        <span class="role-pill role-teacher">ครูผู้ช่วย</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="content-block">
+    <div class="block-title">วิธีสแกน QR</div>
+    <ol class="steps">
+      <li>กดปุ่ม <strong>"เริ่มสแกน"</strong> — เบราว์เซอร์จะขอสิทธิ์กล้อง ให้กด <strong>อนุญาต</strong></li>
+      <li>จ่อ QR Code ของนักเรียนให้อยู่ในกรอบกล้อง</li>
+      <li>เมื่อสแกนสำเร็จ ระบบจะแสดงผล:<br>
+        &nbsp;&nbsp;— <strong>เข้าเรียน</strong> หากยังไม่มี session เปิดอยู่<br>
+        &nbsp;&nbsp;— <strong>ออกจากห้องเรียน + ระยะเวลา</strong> หากมี session ค้างอยู่
+      </li>
+      <li>กดปุ่ม <strong>"หยุด"</strong> เมื่อเสร็จสิ้นการสแกน</li>
+    </ol>
+  </div>
+
+  <div class="content-block">
+    <div class="block-title">ตรวจสอบประวัติล่าสุด</div>
+    <ul class="bullets">
+      <li>รายการสแกนล่าสุด 10 รายการแสดงที่ด้านล่างของหน้า</li>
+      <li>แสดง ชื่อ · วิชา · สถานะ (เข้า/ออก) · เวลา</li>
+    </ul>
+  </div>
+
+  <div class="content-block">
+    <div class="block-title">บันทึกแบบ Manual (ทดสอบ)</div>
+    <ul class="bullets">
+      <li>กรอก Payload ในรูปแบบ <code>qr_code:subject_id</code> แล้วกดปุ่ม <strong>"บันทึก"</strong></li>
+      <li>ใช้สำหรับทดสอบโดยไม่ต้องใช้กล้อง</li>
+    </ul>
+  </div>
+
+  <div class="note-box">
+    <strong>⚠️ ป้องกันสแกนซ้ำ:</strong> QR เดิมจะถูกล็อคไว้ 8 วินาที เพื่อป้องกันการบันทึกซ้ำโดยไม่ตั้งใจ
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════
+     6. ADMIN
+═════════════════════════════════════════════ -->
+<div class="section page">
+  <div class="section-header">
+    <div class="section-icon">👨‍🎓</div>
+    <div class="section-header-text">
+      <h2>6. จัดการนักเรียน</h2>
+      <p>admin.html — เพิ่ม แก้ไข ค้นหา และสร้าง QR Code นักเรียน</p>
+      <div class="role-pills">
+        <span class="role-pill role-admin">Admin</span>
+        <span class="role-pill role-teacher">ครูผู้ช่วย</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="content-block">
+    <div class="block-title">เพิ่มนักเรียนใหม่</div>
+    <ol class="steps">
+      <li>กดปุ่ม <strong>"+ เพิ่มนักเรียน"</strong> ด้านบนขวา</li>
+      <li>กรอกข้อมูล: ชื่อ, ชื่อเล่น, ระดับชั้น</li>
+      <li>เลือกวิชาที่ลงทะเบียน: MATH / THAI / ENG (เลือกได้หลายวิชา)</li>
+      <li>กดปุ่ม <strong>"บันทึก"</strong> — ระบบจะสร้าง QR Code อัตโนมัติ</li>
+    </ol>
+  </div>
+
+  <div class="content-block">
+    <div class="block-title">ค้นหาและกรองนักเรียน</div>
+    <ul class="bullets">
+      <li>พิมพ์ในช่องค้นหา: รองรับ ชื่อ, ชื่อเล่น, ระดับชั้น, วิชา</li>
+      <li>กดปุ่มวิชา <strong>MATH / THAI / ENG</strong> เพื่อกรองตามวิชา</li>
+    </ul>
+  </div>
+
+  <div class="content-block">
+    <div class="block-title">สร้างและพิมพ์ QR Code</div>
+    <ol class="steps">
+      <li>กดปุ่ม <strong>"📱 สร้าง QR ทั้งหมด"</strong> เพื่อสร้าง QR ของนักเรียนทุกคนพร้อมกัน</li>
+      <li>หรือกดปุ่ม <strong>QR</strong> บนการ์ดนักเรียนแต่ละคนเพื่อสร้างเฉพาะราย</li>
+      <li>กดปุ่ม <strong>"พิมพ์ QR"</strong> เพื่อเปิดหน้าต่างพิมพ์ของเบราว์เซอร์</li>
+      <li>กดปุ่ม <strong>"ซ่อน"</strong> เพื่อซ่อน QR Code หลังพิมพ์เสร็จ</li>
+    </ol>
+  </div>
+
+  <div class="tip-box">
+    <strong>QR Code แต่ละใบ</strong> ใช้ได้กับวิชาที่นักเรียนลงทะเบียนเท่านั้น หากนักเรียนเรียน 3 วิชา จะมี QR 3 ใบ (MATH, THAI, ENG)
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════
+     7. NOTIFY
+═════════════════════════════════════════════ -->
+<div class="section page">
+  <div class="section-header">
+    <div class="section-icon">🔔</div>
+    <div class="section-header-text">
+      <h2>7. การแจ้งเตือน</h2>
+      <p>notify.html — ตั้งค่านักเรียนที่ติดตามและรับแจ้งเตือนเมื่อสแกน QR</p>
+      <div class="role-pills">
+        <span class="role-pill role-admin">Admin</span>
+        <span class="role-pill role-teacher">ครูผู้ช่วย</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="content-block">
+    <div class="block-title">เปิดรับการแจ้งเตือนของเบราว์เซอร์</div>
+    <ol class="steps">
+      <li>กดปุ่ม <strong>"เปิดการแจ้งเตือน"</strong> ในหัวข้อ "การแจ้งเตือนของ Chrome"</li>
+      <li>เมื่อเบราว์เซอร์ถาม ให้กด <strong>"อนุญาต"</strong></li>
+      <li>ปุ่มจะเปลี่ยนเป็น <strong>"เปิดอยู่แล้ว ✓"</strong> สีเขียว</li>
+    </ol>
+    <div class="note-box">
+      <strong>หากแจ้งเตือนถูกบล็อก:</strong> ไปที่ Chrome Settings → Privacy → Notifications → ค้นหาเว็บไซต์ → เปลี่ยนเป็น "Allow" แล้วรีโหลดหน้า
+    </div>
+  </div>
+
+  <div class="content-block">
+    <div class="block-title">ตั้งค่านักเรียนที่ติดตาม</div>
+    <ol class="steps">
+      <li>เลือก <strong>บัญชีผู้ใช้</strong> ที่ต้องการตั้งค่า (Admin ตั้งค่าให้ user อื่นได้)</li>
+      <li>เปิดสวิตช์ <strong>"ติดตาม"</strong> ข้างชื่อนักเรียนที่ต้องการ</li>
+      <li>ระบบบันทึกทันที — ผู้ใช้นั้นจะรับแจ้งเตือนเมื่อนักเรียนสแกน QR</li>
+    </ol>
+  </div>
+
+  <div class="content-block">
+    <div class="block-title">ไอคอน 🔔 บนแถบนำทาง</div>
+    <ul class="bullets">
+      <li>ไอคอน 🔔 ที่มุมบนขวาของทุกหน้า (สำหรับ Admin/ครูผู้ช่วย) จะแสดง <strong>ตัวเลขนักเรียน</strong> ที่สแกน</li>
+      <li>กดไอคอน 🔔 เพื่อล้างตัวเลข</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════
+     8. NOTES
+═════════════════════════════════════════════ -->
+<div class="section page">
+  <div class="section-header">
+    <div class="section-icon">📝</div>
+    <div class="section-header-text">
+      <h2>8. บันทึกพัฒนาการ</h2>
+      <p>notes.html — ครูเขียนบันทึก / ผู้ปกครองอ่านบันทึกของบุตรหลาน</p>
+      <div class="role-pills">
+        <span class="role-pill role-admin">Admin</span>
+        <span class="role-pill role-teacher">ครูผู้ช่วย</span>
+        <span class="role-pill role-view">ดูอย่างเดียว (อ่านอย่างเดียว)</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="content-block">
+    <div class="block-title">Admin / ครูผู้ช่วย — เขียนบันทึก</div>
+    <ol class="steps">
+      <li>เลือก <strong>นักเรียน</strong> จาก Dropdown</li>
+      <li>พิมพ์บันทึก เช่น ความก้าวหน้า สิ่งที่ต้องปรับปรุง หรือข้อสังเกต</li>
+      <li>กด <strong>Ctrl+Enter</strong> หรือกดปุ่ม <strong>"บันทึก"</strong></li>
+      <li>บันทึกจะปรากฏในรายการประวัติทันที (Realtime)</li>
+    </ol>
+    <div class="tip-box">
+      สามารถเขียนบันทึกได้โดยตรงจาก <strong>Dashboard</strong> โดยกดปุ่ม "✏️ บันทึก" บนการ์ดนักเรียน โดยไม่ต้องเปิดหน้าใหม่
+    </div>
+  </div>
+
+  <div class="content-block">
+    <div class="block-title">กรองบันทึก (Admin / ครูผู้ช่วย)</div>
+    <ul class="bullets">
+      <li>เลือกชื่อนักเรียนจาก Dropdown "กรองนักเรียน" เพื่อดูบันทึกเฉพาะคน</li>
+      <li>เลือก "ทุกนักเรียน" เพื่อดูบันทึกทั้งหมด</li>
+    </ul>
+  </div>
+
+  <hr class="soft">
+
+  <div class="content-block">
+    <div class="block-title">ผู้ปกครอง (ดูอย่างเดียว) — อ่านบันทึก</div>
+    <ul class="bullets">
+      <li>เห็นเฉพาะบันทึกของนักเรียนที่ <strong>ตั้งค่าติดตาม</strong> ไว้ (Admin ตั้งให้)</li>
+      <li>บันทึกใหม่จะปรากฏโดยอัตโนมัติโดยไม่ต้องรีโหลด</li>
+      <li>หากยังไม่มีนักเรียนที่ติดตาม ระบบจะแสดงลิงก์ไปหน้า "การแจ้งเตือน" ให้ Admin ช่วยตั้งค่า</li>
+    </ul>
+    <div class="note-box">
+      <strong>หมายเหตุ:</strong> ผู้ปกครองไม่สามารถตั้งค่าการติดตามเองได้ ต้องให้ Admin เป็นผู้ตั้งค่าให้ผ่านหน้า "การแจ้งเตือน"
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════
+     9. SETTINGS
+═════════════════════════════════════════════ -->
+<div class="section page">
+  <div class="section-header">
+    <div class="section-icon">⚙️</div>
+    <div class="section-header-text">
+      <h2>9. ตั้งค่าระบบ</h2>
+      <p>settings.html — เปลี่ยนภาษาและจัดการบัญชีผู้ใช้</p>
+      <div class="role-pills">
+        <span class="role-pill role-admin">Admin เท่านั้น</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="content-block">
+    <div class="block-title">เปลี่ยนภาษา</div>
+    <ol class="steps">
+      <li>ไปที่หัวข้อ <strong>"ภาษา / Language"</strong></li>
+      <li>กดปุ่ม <strong>"ไทย"</strong> หรือ <strong>"English"</strong></li>
+      <li>ทุกหน้าจะเปลี่ยนภาษาทันที — ระบบจำการตั้งค่าในเบราว์เซอร์นั้น</li>
+    </ol>
+  </div>
+
+  <div class="content-block">
+    <div class="block-title">สร้างบัญชีผู้ใช้ใหม่</div>
+    <ol class="steps">
+      <li>กดปุ่ม <strong>"+ สร้างผู้ใช้ใหม่"</strong></li>
+      <li>กรอก <strong>อีเมล</strong> และ <strong>รหัสผ่าน</strong> (อย่างน้อย 6 ตัวอักษร)</li>
+      <li>กด <strong>"ยืนยันรหัสผ่าน"</strong> อีกครั้ง</li>
+      <li>กดปุ่ม <strong>"สร้างบัญชี"</strong></li>
+    </ol>
+    <div class="note-box">
+      <strong>⚠️ หลังสร้างบัญชี:</strong> หาก Supabase ปิด Email Confirmation ระบบจะ Sign Out อัตโนมัติ Admin ต้องเข้าสู่ระบบใหม่อีกครั้ง<br>
+      <strong>บทบาทเริ่มต้น:</strong> บัญชีใหม่ได้รับสิทธิ์ Admin โดยอัตโนมัติ Admin สามารถเปลี่ยนบทบาทได้ใน Supabase Dashboard
+    </div>
+  </div>
+
+  <div class="content-block">
+    <div class="block-title">ดูรายชื่อผู้ใช้ทั้งหมด</div>
+    <ul class="bullets">
+      <li>ตารางด้านล่างแสดงอีเมล บทบาท และวันที่สร้างของทุก account</li>
+      <li>บัญชีตัวเองจะมีป้าย <strong>"คุณ"</strong> กำกับ</li>
+    </ul>
+  </div>
+
+  <div style="margin-top: 32px; padding: 20px; background: #f0fdf4; border-radius: 10px; border: 1px solid #86efac;">
+    <div style="font-weight:800; color:#14532d; margin-bottom:10px;">📋 ขั้นตอนเพิ่มผู้ปกครอง (View User)</div>
+    <ol class="steps">
+      <li>Admin สร้างบัญชีให้ผู้ปกครองในหน้า <strong>ตั้งค่าระบบ</strong></li>
+      <li>ไปที่ <strong>Supabase Dashboard → Table Editor → profiles</strong> เปลี่ยน role จาก <code>admin</code> เป็น <code>view</code></li>
+      <li>Admin ไปที่หน้า <strong>การแจ้งเตือน</strong> → เลือก account ผู้ปกครอง → เปิด toggle นักเรียนที่ต้องการ</li>
+      <li>แจ้ง email/password ให้ผู้ปกครอง เข้าสู่ระบบด้วย <strong>บทบาทดูอย่างเดียว</strong></li>
+    </ol>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════
+     APPENDIX / TROUBLESHOOT
+═════════════════════════════════════════════ -->
+<div class="section page">
+  <div class="section-header">
+    <div class="section-icon">🛠️</div>
+    <div class="section-header-text">
+      <h2>ภาคผนวก — แก้ปัญหาเบื้องต้น</h2>
+      <p>ปัญหาที่พบบ่อยและวิธีแก้ไข</p>
+    </div>
+  </div>
+
+  <table class="perm-table">
+    <tr>
+      <th>ปัญหา</th>
+      <th>สาเหตุ</th>
+      <th>วิธีแก้ไข</th>
+    </tr>
+    <tr>
+      <td>เข้าสู่ระบบไม่ได้</td>
+      <td>อีเมล/รหัสผ่านผิด หรือยังไม่ยืนยันอีเมล</td>
+      <td>ตรวจสอบอีเมล ถ้ายังไม่ยืนยัน ให้คลิกลิงก์ในอีเมล</td>
+    </tr>
+    <tr>
+      <td>กล้องไม่ทำงาน</td>
+      <td>เบราว์เซอร์ไม่ได้รับสิทธิ์กล้อง</td>
+      <td>คลิกไอคอนกล้องในแถบ URL → อนุญาต → รีโหลดหน้า</td>
+    </tr>
+    <tr>
+      <td>สแกน QR แล้วไม่มีผล</td>
+      <td>นักเรียนไม่ได้ลงทะเบียนวิชานั้น หรือ QR ผิดวิชา</td>
+      <td>ตรวจสอบว่า QR ตรงกับวิชาที่นักเรียนลงทะเบียน</td>
+    </tr>
+    <tr>
+      <td>ไม่รับการแจ้งเตือน</td>
+      <td>เบราว์เซอร์บล็อกการแจ้งเตือน หรือยังไม่ได้ตั้งค่า</td>
+      <td>ไปหน้า "การแจ้งเตือน" → กด "เปิดการแจ้งเตือน" → อนุญาต</td>
+    </tr>
+    <tr>
+      <td>ข้อมูลไม่อัปเดต</td>
+      <td>การเชื่อมต่อ Realtime ขาด</td>
+      <td>รีโหลดหน้า (F5 หรือ Ctrl+R)</td>
+    </tr>
+    <tr>
+      <td>หน้า Dashboard โหลดช้า</td>
+      <td>ข้อมูลนักเรียนมาก หรืออินเทอร์เน็ตช้า</td>
+      <td>รอสักครู่ หรือตรวจสอบสัญญาณอินเทอร์เน็ต</td>
+    </tr>
+    <tr>
+      <td>ผู้ปกครองไม่เห็นบันทึก</td>
+      <td>ยังไม่ได้ Map นักเรียนให้ account นั้น</td>
+      <td>Admin ไปหน้า "การแจ้งเตือน" → เลือก account → เปิด toggle</td>
+    </tr>
+    <tr>
+      <td>ถูก redirect ไป Dashboard</td>
+      <td>สิทธิ์ไม่เพียงพอสำหรับหน้านั้น</td>
+      <td>ติดต่อ Admin เพื่อขอสิทธิ์ที่ถูกต้อง</td>
+    </tr>
+  </table>
+
+  <div style="margin-top:32px; padding:18px; background:#f8fafc; border:1px solid var(--border); border-radius:10px; font-size:.88rem; color:var(--muted); text-align:center; line-height:1.8;">
+    ClassScan v1.3.0 · KUMON โพนพิสัย<br>
+    จัดทำ: 28 พฤษภาคม 2569<br>
+    สอบถามการใช้งาน: ผู้ดูแลระบบ ClassScan
+  </div>
+</div>
+
+</body>
+</html>
