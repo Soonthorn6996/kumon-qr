@@ -17,6 +17,17 @@ export async function login(email, password) {
   return { data, error }
 }
 
+export async function sendPasswordReset(email) {
+  const redirectTo = window.location.origin + '/reset-password.html'
+  const { data, error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo })
+  return { data, error }
+}
+
+export async function updatePassword(newPassword) {
+  const { data, error } = await supabase.auth.updateUser({ password: newPassword })
+  return { data, error }
+}
+
 function clearStoredAuth() {
   for (const storage of [localStorage, sessionStorage]) {
     try {

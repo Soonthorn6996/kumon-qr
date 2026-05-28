@@ -160,6 +160,60 @@
       cursor: pointer;
     }
 
+    .forgot-link {
+      display: block;
+      text-align: right;
+      font-size: .8rem;
+      color: var(--blue);
+      margin-top: -10px;
+      margin-bottom: 16px;
+      cursor: pointer;
+      text-decoration: none;
+    }
+    .forgot-link:hover { text-decoration: underline; }
+
+    .reset-panel {
+      display: none;
+      background: #f0f9ff;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+    .reset-panel p {
+      font-size: .82rem;
+      color: var(--muted);
+      margin-bottom: 10px;
+    }
+    .reset-panel input {
+      margin-bottom: 10px;
+    }
+    .reset-panel button {
+      width: 100%;
+      padding: 10px;
+      background: var(--navy);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: .9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity .2s;
+    }
+    .reset-panel button:hover { opacity: .88; }
+    .reset-panel button:disabled { opacity: .5; cursor: not-allowed; }
+
+    .success-box {
+      background: #f0fdf4;
+      border: 1px solid #86efac;
+      color: #166534;
+      border-radius: 10px;
+      padding: 10px 14px;
+      font-size: .875rem;
+      margin-bottom: 14px;
+      display: none;
+    }
+
     .footer-note {
       text-align: center;
       margin-top: 20px;
@@ -187,6 +241,14 @@
   <div class="divider"></div>
 
   <div class="error-box" id="errorMsg"></div>
+  <div class="success-box" id="successMsg"></div>
+
+  <!-- Forgot password panel -->
+  <div class="reset-panel" id="resetPanel">
+    <p>กรอกอีเมลที่ใช้สมัคร ระบบจะส่งลิงก์ตั้งรหัสผ่านใหม่ให้</p>
+    <input type="email" id="resetEmail" placeholder="admin@example.com" autocomplete="email">
+    <button type="button" id="resetSendBtn">ส่งลิงก์รีเซ็ต</button>
+  </div>
 
   <form id="loginForm">
     <label for="email">อีเมล</label>
@@ -194,6 +256,7 @@
 
     <label for="password">รหัสผ่าน</label>
     <input type="password" id="password" placeholder="••••••••" required autocomplete="current-password">
+    <a class="forgot-link" id="forgotLink">ลืมรหัสผ่าน?</a>
 
     <div class="remember-row">
       <input type="checkbox" id="rememberMe">
@@ -208,18 +271,58 @@
 
 <script src="/js/config.js"></script>
 <script type="module">
-  import { login } from '/js/auth.js'
+  import { login, sendPasswordReset } from '/js/auth.js'
   import { supabase } from '/js/supabase.js'
 
   const { data: { session } } = await supabase.auth.getSession()
   if (session) window.location.href = '/index.html'
 
-  const form       = document.getElementById('loginForm')
-  const errEl      = document.getElementById('errorMsg')
-  const btn        = document.getElementById('submitBtn')
-  const emailEl    = document.getElementById('email')
-  const passwordEl = document.getElementById('password')
-  const rememberEl = document.getElementById('rememberMe')
+  const form        = document.getElementById('loginForm')
+  const errEl       = document.getElementById('errorMsg')
+  const successEl   = document.getElementById('successMsg')
+  const btn         = document.getElementById('submitBtn')
+  const emailEl     = document.getElementById('email')
+  const passwordEl  = document.getElementById('password')
+  const rememberEl  = document.getElementById('rememberMe')
+  const forgotLink  = document.getElementById('forgotLink')
+  const resetPanel  = document.getElementById('resetPanel')
+  const resetEmail  = document.getElementById('resetEmail')
+  const resetSendBtn = document.getElementById('resetSendBtn')
+
+  // Toggle forgot password panel
+  forgotLink.addEventListener('click', () => {
+    const open = resetPanel.style.display === 'block'
+    resetPanel.style.display = open ? 'none' : 'block'
+    if (!open) {
+      resetEmail.value = emailEl.value.trim()
+      resetEmail.focus()
+    }
+    errEl.style.display = 'none'
+    successEl.style.display = 'none'
+  })
+
+  // Send reset email
+  resetSendBtn.addEventListener('click', async () => {
+    const email = resetEmail.value.trim()
+    if (!email) { resetEmail.focus(); return }
+    resetSendBtn.disabled = true
+    resetSendBtn.textContent = 'กำลังส่ง...'
+    errEl.style.display = 'none'
+    successEl.style.display = 'none'
+
+    const { error } = await sendPasswordReset(email)
+    resetSendBtn.disabled = false
+    resetSendBtn.textContent = 'ส่งลิงก์รีเซ็ต'
+
+    if (error) {
+      errEl.textContent = 'ไม่พบอีเมลนี้ในระบบ หรือเกิดข้อผิดพลาด'
+      errEl.style.display = 'block'
+    } else {
+      resetPanel.style.display = 'none'
+      successEl.textContent = `ส่งลิงก์ตั้งรหัสผ่านใหม่ไปที่ ${email} แล้ว กรุณาตรวจกล่องจดหมาย`
+      successEl.style.display = 'block'
+    }
+  })
 
   // โหลด credentials ที่บันทึกไว้
   const saved = localStorage.getItem('classscan_remember')
