@@ -506,12 +506,14 @@ let lastScanAt = 0
 let toastTimer
 let supportsGradeLevel = true
 let cameraChangeBound = false
+let currentUserEmail = ''
 
 async function init() {
   const session = await requireAuth()
   if (!session) return
 
-  document.getElementById('userEmail').textContent = session.user.email
+  currentUserEmail = session.user.email
+  document.getElementById('userEmail').textContent = currentUserEmail
   document.getElementById('logoutBtn').addEventListener('click', logout)
 
   startBtn.addEventListener('click', startScanner)
@@ -792,6 +794,7 @@ async function processScan(raw, manual = false) {
     renderResult(scanResult)
     toast(scanResult.action === 'in' ? 'บันทึกเข้าเรียนแล้ว' : 'บันทึกออกเรียนแล้ว')
     manualCode.value = ''
+    await stopScanner()
     await loadHistory()
   } catch (err) {
     showError(err.message)
@@ -858,7 +861,7 @@ async function saveAttendance(qrCode, subjectId) {
         duration_minutes: duration,
       })
       .eq('id', openLog.id)
-      .select('id, check_in_at, check_out_at, duration_minutes')
+      .select('id, check_in_at, check_out_at, duration_minutes, scanned_by')
       .single()
 
     if (error) throw new Error('บันทึกออกไม่สำเร็จ: ' + error.message)
@@ -871,8 +874,9 @@ async function saveAttendance(qrCode, subjectId) {
       student_id: student.id,
       subject_id: subjectId,
       check_in_at: scannedAt.toISOString(),
+      scanned_by: currentUserEmail,
     })
-    .select('id, check_in_at, check_out_at, duration_minutes')
+    .select('id, check_in_at, check_out_at, duration_minutes, scanned_by')
     .single()
 
   if (error) throw new Error('บันทึกเข้าไม่สำเร็จ: ' + error.message)
@@ -903,8 +907,8 @@ function renderResult({ action, student, subject, log }) {
         <strong>${log.duration_minutes ? `${log.duration_minutes} นาที` : '-'}</strong>
       </div>
       <div class="meta">
-        <span>ระดับชั้น</span>
-        <strong>${student.grade_level ? escapeHtml(student.grade_level) : '-'}</strong>
+        <span>สแกนโดย</span>
+        <strong style="font-size:.78rem;word-break:break-all">${escapeHtml(log.scanned_by || currentUserEmail || '-')}</strong>
       </div>
     </div>
   `
@@ -923,7 +927,7 @@ async function loadHistory() {
   let { data, error } = await supabase
     .from('attendance_logs')
     .select(`
-      id, check_in_at, check_out_at, duration_minutes,
+      id, check_in_at, check_out_at, duration_minutes, scanned_by,
       students ( name, nickname, grade_level ),
       subjects ( name, color )
     `)
@@ -935,7 +939,7 @@ async function loadHistory() {
     const fallback = await supabase
       .from('attendance_logs')
       .select(`
-        id, check_in_at, check_out_at, duration_minutes,
+        id, check_in_at, check_out_at, duration_minutes, scanned_by,
         students ( name, nickname ),
         subjects ( name, color )
       `)
@@ -976,11 +980,12 @@ async function loadHistory() {
     const grade = row.students?.grade_level ? ` · ${row.students.grade_level}` : ''
     const action = row.check_out_at ? 'ออกแล้ว' : 'กำลังเรียน'
     const time = row.check_out_at || row.check_in_at
+    const scanner = row.scanned_by ? ` · ${escapeHtml(row.scanned_by)}` : ''
     return `
       <div class="history-item">
         <div>
           <div class="history-name">${escapeHtml(name)}</div>
-          <div class="history-sub">${escapeHtml(subject)}${escapeHtml(grade)} · ${action}${row.duration_minutes ? ` · ${row.duration_minutes} นาที` : ''}</div>
+          <div class="history-sub">${escapeHtml(subject)}${escapeHtml(grade)} · ${action}${row.duration_minutes ? ` · ${row.duration_minutes} นาที` : ''}${scanner}</div>
         </div>
         <div class="history-time">${fmtTime(time)}</div>
       </div>`

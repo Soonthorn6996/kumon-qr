@@ -483,7 +483,7 @@ async function loadDashboard() {
     supabase
       .from('attendance_logs')
       .select(`
-        id, student_id, subject_id, check_in_at,
+        id, student_id, subject_id, check_in_at, scanned_by,
         subjects ( id, name, color )
       `)
       .is('check_out_at', null)
@@ -574,7 +574,8 @@ function render() {
       ? sessions.map(log => {
           const minutes = minutesSince(log.check_in_at)
           const subject = escapeHtml(subjectLabel(log.subjects?.name || '-'))
-          return `<div><strong>${subject}</strong> เข้า ${fmtTime(log.check_in_at)} · ${durationLabel(minutes)}</div>`
+          const scanner = log.scanned_by ? `<span style="color:var(--muted);font-size:.75rem"> · สแกนโดย: ${escapeHtml(log.scanned_by)}</span>` : ''
+          return `<div><strong>${subject}</strong> เข้า ${fmtTime(log.check_in_at)} · ${durationLabel(minutes)}${scanner}</div>`
         }).join('')
       : '<div>ยังไม่มีรายการเข้าเรียนที่เปิดอยู่</div>'
 
