@@ -489,6 +489,7 @@
 import { logout } from '/js/auth.js'
 import { supabase } from '/js/supabase.js'
 import { requirePage } from '/js/rbac.js'
+import { initBell } from '/js/bell.js'
 
 const statusEl = document.getElementById('scanStatus')
 const resultEl = document.getElementById('resultBox')
@@ -515,6 +516,7 @@ async function init() {
   const { session } = result
 
   currentUserEmail = session.user.email
+  initBell(session)
   document.getElementById('userEmail').textContent = currentUserEmail
   document.getElementById('logoutBtn').addEventListener('click', logout)
 

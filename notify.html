@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KUMON — การแจ้งเตือน</title>
+  <style>
+    :root {
+      --bg: #eaf4fb; --navy: #1a4a6e; --primary: #f97316;
+      --gold: #c9a227; --blue: #5ba4cf; --text: #1a202c;
+      --muted: #5a7a92; --border: #c5e3f2; --card: #ffffff;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', Tahoma, sans-serif; background: var(--bg); min-height: 100vh; }
+
+    nav {
+      background: var(--navy); padding: 0 20px; height: 58px;
+      display: flex; align-items: center; justify-content: space-between;
+      position: sticky; top: 0; z-index: 100;
+      box-shadow: 0 2px 8px rgba(0,0,0,.2);
+    }
+    .nav-brand { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+    .nav-brand img { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; border: 2px solid var(--gold); }
+    .nav-brand span { font-weight: 700; font-size: 1rem; color: white; }
+    .nav-right { display: flex; align-items: center; gap: 10px; }
+    .nav-back {
+      background: transparent; border: 1px solid #3a6a90; color: #a0c4dd;
+      padding: 5px 12px; border-radius: 6px; cursor: pointer;
+      font-size: .8rem; text-decoration: none; white-space: nowrap;
+    }
+    .nav-back:hover { background: #3a6a90; color: white; }
+
+    .hero {
+      background: linear-gradient(135deg, var(--navy) 0%, #2a6496 100%);
+      color: white; padding: 28px 20px; text-align: center;
+    }
+    .hero h2 { font-size: 1.4rem; font-weight: 700; margin-bottom: 5px; }
+    .hero p { color: #a0c4dd; font-size: .88rem; }
+
+    .container { max-width: 700px; margin: 0 auto; padding: 24px 16px; }
+
+    .perm-card {
+      background: var(--card); border-radius: 14px; padding: 20px;
+      box-shadow: 0 2px 10px rgba(26,74,110,.08); margin-bottom: 20px;
+      display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    }
+    .perm-card p { font-size: .88rem; color: var(--muted); }
+    .perm-card strong { display: block; font-size: .95rem; color: var(--text); margin-bottom: 3px; }
+    .btn-enable {
+      background: var(--primary); color: white; border: none;
+      padding: 9px 18px; border-radius: 8px; cursor: pointer;
+      font-size: .88rem; font-weight: 600; white-space: nowrap;
+    }
+    .btn-enable:disabled { background: #10b981; cursor: default; }
+
+    .section-title {
+      font-size: .8rem; font-weight: 700; color: var(--muted);
+      text-transform: uppercase; letter-spacing: .5px;
+      margin-bottom: 10px;
+    }
+
+    .student-list { display: flex; flex-direction: column; gap: 8px; }
+
+    .student-row {
+      background: var(--card); border-radius: 12px;
+      padding: 14px 18px; display: flex; align-items: center;
+      gap: 14px; box-shadow: 0 1px 6px rgba(26,74,110,.07);
+    }
+    .student-avatar {
+      width: 42px; height: 42px; border-radius: 50%;
+      object-fit: cover; border: 2px solid var(--border); flex-shrink: 0;
+    }
+    .avatar-placeholder {
+      width: 42px; height: 42px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--navy), var(--blue));
+      display: flex; align-items: center; justify-content: center;
+      color: white; font-weight: 700; font-size: 1rem; flex-shrink: 0;
+    }
+    .student-info { flex: 1; min-width: 0; }
+    .student-name { font-size: .95rem; font-weight: 600; color: var(--text); }
+    .student-nick { font-size: .8rem; color: var(--muted); }
+
+    /* Toggle switch */
+    .toggle-wrap { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+    .toggle-label { font-size: .8rem; color: var(--muted); }
+    .toggle {
+      position: relative; width: 44px; height: 24px;
+      display: inline-block; flex-shrink: 0;
+    }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .slider {
+      position: absolute; inset: 0; background: #cbd5e0;
+      border-radius: 24px; cursor: pointer; transition: .2s;
+    }
+    .slider::before {
+      content: ''; position: absolute; width: 18px; height: 18px;
+      left: 3px; top: 3px; background: white;
+      border-radius: 50%; transition: .2s;
+    }
+    .toggle input:checked + .slider { background: var(--primary); }
+    .toggle input:checked + .slider::before { transform: translateX(20px); }
+
+    #statusMsg {
+      text-align: center; padding: 12px;
+      font-size: .85rem; color: var(--muted);
+    }
+    .empty { text-align: center; padding: 40px; color: var(--muted); font-size: .9rem; }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="/index.html" class="nav-brand">
+    <img src="/LOGO.jpg" alt="KUMON">
+    <span>KUMON โพนพิสัย</span>
+  </a>
+  <div class="nav-right">
+    <a href="/index.html" class="nav-back">← กลับ</a>
+  </div>
+</nav>
+
+<div class="hero">
+  <h2>🔔 การแจ้งเตือน</h2>
+  <p>เลือกนักเรียนที่ต้องการรับแจ้งเตือนเมื่อเข้า/ออกห้องเรียน</p>
+</div>
+
+<div class="container">
+  <div class="perm-card">
+    <div>
+      <strong id="permTitle">การแจ้งเตือนของ Chrome</strong>
+      <p id="permDesc">กดเปิดเพื่อรับแจ้งเตือนเมื่อนักเรียนสแกน QR</p>
+    </div>
+    <button class="btn-enable" id="permBtn">เปิดการแจ้งเตือน</button>
+  </div>
+
+  <div class="section-title">นักเรียนที่ติดตาม</div>
+  <div id="statusMsg">กำลังโหลด...</div>
+  <div class="student-list" id="studentList"></div>
+</div>
+
+<script src="/js/config.js"></script>
+<script type="module">
+  import { requirePage } from '/js/rbac.js'
+  import { supabase }    from '/js/supabase.js'
+  import {
+    requestPermission, getPermission, registerSW,
+    loadWatches, toggleWatch, getLocalWatches
+  } from '/js/notifications.js'
+
+  let currentUserId = ''
+  let watchedIds = []
+
+  async function init() {
+    const result = await requirePage('dashboard')
+    if (!result) return
+    const { session } = result
+    currentUserId = session.user.id
+
+    await registerSW()
+    updatePermUI()
+    document.getElementById('permBtn').addEventListener('click', onPermClick)
+
+    watchedIds = await loadWatches(currentUserId)
+    await renderStudents()
+  }
+
+  function updatePermUI() {
+    const p = getPermission()
+    const btn = document.getElementById('permBtn')
+    const desc = document.getElementById('permDesc')
+    if (p === 'granted') {
+      btn.textContent = 'เปิดอยู่แล้ว ✓'
+      btn.disabled = true
+      desc.textContent = 'รับแจ้งเตือนเมื่อนักเรียนสแกน QR'
+    } else if (p === 'denied') {
+      btn.textContent = 'ถูกบล็อก'
+      btn.disabled = true
+      desc.textContent = 'กรุณาเปิดสิทธิ์ใน Chrome Settings แล้วรีโหลดหน้า'
+    } else if (p === 'unsupported') {
+      btn.textContent = 'ไม่รองรับ'
+      btn.disabled = true
+    }
+  }
+
+  async function onPermClick() {
+    const p = await requestPermission()
+    updatePermUI()
+    if (p === 'granted') {
+      const btn = document.getElementById('permBtn')
+      btn.textContent = 'เปิดอยู่แล้ว ✓'
+      btn.disabled = true
+    }
+  }
+
+  async function renderStudents() {
+    const statusEl = document.getElementById('statusMsg')
+    const listEl   = document.getElementById('studentList')
+    listEl.innerHTML = ''
+
+    const { data: students, error } = await supabase
+      .from('students')
+      .select('id, name, nickname, photo_url')
+      .eq('is_active', true)
+      .order('name')
+
+    if (error || !students?.length) {
+      statusEl.textContent = 'ไม่พบนักเรียน'
+      return
+    }
+    statusEl.textContent = ''
+
+    for (const s of students) {
+      const isWatched = watchedIds.includes(s.id)
+      const row = document.createElement('div')
+      row.className = 'student-row'
+
+      let avatarEl
+      if (s.photo_url) {
+        avatarEl = `<img class="student-avatar" src="${s.photo_url}" alt="${s.name}">`
+      } else {
+        const initial = (s.nickname || s.name || '?')[0].toUpperCase()
+        avatarEl = `<div class="avatar-placeholder">${initial}</div>`
+      }
+
+      row.innerHTML = `
+        ${avatarEl}
+        <div class="student-info">
+          <div class="student-name">${s.name}</div>
+          <div class="student-nick">${s.nickname || ''}</div>
+        </div>
+        <div class="toggle-wrap">
+          <span class="toggle-label">${isWatched ? 'ติดตาม' : 'ไม่ติดตาม'}</span>
+          <label class="toggle">
+            <input type="checkbox" data-id="${s.id}" ${isWatched ? 'checked' : ''}>
+            <span class="slider"></span>
+          </label>
+        </div>
+      `
+      listEl.appendChild(row)
+    }
+
+    listEl.querySelectorAll('input[type=checkbox]').forEach(cb => {
+      cb.addEventListener('change', async e => {
+        const studentId = e.target.dataset.id
+        const watch     = e.target.checked
+        const label     = e.target.closest('.toggle-wrap').querySelector('.toggle-label')
+        label.textContent = watch ? 'ติดตาม' : 'ไม่ติดตาม'
+        watchedIds = await toggleWatch(currentUserId, studentId, watch)
+      })
+    })
+  }
+
+  init()
+</script>
+<script src="/js/version.js"></script>
+
+</body>
+</html>

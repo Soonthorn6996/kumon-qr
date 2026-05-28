@@ -221,6 +221,13 @@
         <p>ภาษา + จัดการบัญชีผู้ใช้</p>
       </div>
     </a>
+    <a href="/notify.html" class="menu-card" style="border-bottom-color:#8b5cf6" id="cardNotify">
+      <span class="icon">🔔</span>
+      <div>
+        <h3>การแจ้งเตือน</h3>
+        <p>เลือกนักเรียนที่ติดตาม</p>
+      </div>
+    </a>
   </div>
 </div>
 
@@ -228,11 +235,13 @@
 <script type="module">
   import { logout } from '/js/auth.js'
   import { requirePage, roleLabel } from '/js/rbac.js'
+  import { initBell } from '/js/bell.js'
 
   async function init() {
     const result = await requirePage('dashboard')
     if (!result) return
     const { session, profile } = result
+    initBell(session)
 
     const role = profile?.role || 'view'
     const roleTxt = profile?.role ? ` · ${roleLabel(role)}` : ''

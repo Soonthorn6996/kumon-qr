@@ -364,6 +364,7 @@
 import { logout } from '/js/auth.js'
 import { supabase } from '/js/supabase.js'
 import { requirePage, roleLabel } from '/js/rbac.js'
+import { initBell } from '/js/bell.js'
 
 let students = []
 let openLogs = []
@@ -377,6 +378,7 @@ async function init() {
   if (!result) return
   const { session, profile } = result
 
+  initBell(session)
   const roleTxt = profile?.role ? ` (${roleLabel(profile.role)})` : ''
   document.getElementById('userEmail').textContent = session.user.email + roleTxt
   document.getElementById('logoutBtn').addEventListener('click', logout)
