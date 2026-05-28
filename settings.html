@@ -472,10 +472,10 @@ async function handleCreateUser() {
 async function init() {
   const result = await requirePage('settings')
   if (!result) return
-  const { session } = result
+  const { session, profile } = result
 
   currentUserEmail = session.user.email
-  initBell(session)
+  initBell(session, profile)
   document.getElementById('userEmail').textContent = currentUserEmail
   document.getElementById('logoutBtn').addEventListener('click', logout)
 

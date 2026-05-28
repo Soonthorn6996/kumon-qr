@@ -728,9 +728,9 @@ const subjectIdCache = {}  // { 'MATH': uuid, 'THAI': uuid, 'ENG': uuid }
 async function init() {
   const result = await requirePage('admin_panel')
   if (!result) return
-  const { session } = result
+  const { session, profile } = result
 
-  initBell(session)
+  initBell(session, profile)
   document.getElementById('userEmail').textContent = session.user.email
   document.getElementById('logoutBtn').addEventListener('click', logout)
   document.getElementById('addBtn').addEventListener('click', openAdd)

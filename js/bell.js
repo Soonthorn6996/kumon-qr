@@ -1,5 +1,6 @@
 import { supabase }    from '/js/supabase.js'
 import { getLocalWatches, loadWatches, browserNotif, registerSW } from '/js/notifications.js'
+import { canAccess } from '/js/rbac.js'
 
 const BELL_CSS = `
 .bell-btn {
@@ -107,11 +108,15 @@ function subscribeRealtime(watchedIds) {
     .subscribe()
 }
 
-export async function initBell(session) {
+export async function initBell(session, profile) {
   injectCSS()
   const navRight = document.querySelector('.nav-right')
   if (!navRight) return
-  injectBell(navRight)
+
+  // Only admin/teacher see the bell button (they can navigate to notify.html)
+  if (!profile || canAccess(profile, 'notify')) {
+    injectBell(navRight)
+  }
 
   await registerSW()
   const watched = await loadWatches(session.user.id)

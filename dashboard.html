@@ -378,7 +378,7 @@ async function init() {
   if (!result) return
   const { session, profile } = result
 
-  initBell(session)
+  initBell(session, profile)
   const roleTxt = profile?.role ? ` (${roleLabel(profile.role)})` : ''
   document.getElementById('userEmail').textContent = session.user.email + roleTxt
   document.getElementById('logoutBtn').addEventListener('click', logout)
