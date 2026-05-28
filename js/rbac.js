@@ -4,9 +4,9 @@ export const ROLE = { ADMIN: 'admin', TEACHER: 'teacher', VIEW: 'view' }
 
 // Pages each role may access
 const ACCESS = {
-  admin:   ['dashboard', 'scan', 'admin_panel', 'settings', 'notify'],
-  teacher: ['dashboard', 'scan', 'admin_panel', 'notify'],
-  view:    ['dashboard'],
+  admin:   ['dashboard', 'scan', 'admin_panel', 'settings', 'notify', 'notes'],
+  teacher: ['dashboard', 'scan', 'admin_panel', 'notify', 'notes'],
+  view:    ['dashboard', 'notes'],
 }
 
 const LABELS = {

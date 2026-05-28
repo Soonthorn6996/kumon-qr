@@ -291,6 +291,52 @@
     .toast.show { opacity: 1; transform: translateY(0); }
     .toast.err { background: #b91c1c; }
 
+    /* ── Note modal ── */
+    .note-modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 200;
+      display: flex; align-items: center; justify-content: center; padding: 16px;
+    }
+    .note-modal-overlay[hidden] { display: none; }
+    .note-modal {
+      background: white; border-radius: 16px; padding: 24px; width: 100%; max-width: 440px;
+      box-shadow: 0 20px 60px rgba(0,0,0,.3);
+    }
+    .note-modal-title { font-size: 1rem; font-weight: 700; color: var(--navy); margin-bottom: 14px; }
+    .note-modal textarea {
+      width: 100%; padding: 9px 12px; border: 1.5px solid var(--border); border-radius: 9px;
+      font-size: .9rem; font-family: inherit; color: var(--text); background: white;
+      resize: vertical; min-height: 90px; margin-bottom: 10px;
+    }
+    .note-modal textarea:focus { outline: none; border-color: var(--blue); }
+    .note-modal-actions { display: flex; gap: 10px; justify-content: flex-end; }
+    .btn-note-cancel {
+      border: 1px solid var(--border); background: white; color: var(--muted);
+      padding: 8px 16px; border-radius: 8px; font-size: .85rem; cursor: pointer;
+    }
+    .btn-note-cancel:hover { background: #f1f5f9; }
+    .btn-note-submit {
+      border: none; background: linear-gradient(135deg, var(--primary), #fb923c);
+      color: white; padding: 8px 18px; border-radius: 8px; font-size: .85rem;
+      font-weight: 700; cursor: pointer;
+    }
+    .btn-note-submit:disabled { opacity: .5; cursor: not-allowed; }
+    .note-modal-alert {
+      border-radius: 8px; padding: 8px 12px; font-size: .82rem; margin-bottom: 10px;
+      background: #fff7ed; border: 1px solid #fdba74; color: #c2410c;
+    }
+    .card-footer {
+      display: flex; align-items: center; justify-content: space-between; gap: 8px;
+      padding-top: 8px; border-top: 1px solid #f1f5f9; margin-top: 2px;
+    }
+    .note-count { font-size: .76rem; color: var(--muted); }
+    .note-count.has-notes { color: var(--primary); font-weight: 600; }
+    .btn-write-note {
+      border: 1px solid var(--primary); background: transparent; color: var(--primary);
+      border-radius: 7px; padding: 4px 10px; font-size: .78rem; font-weight: 700; cursor: pointer;
+      white-space: nowrap;
+    }
+    .btn-write-note:hover { background: var(--primary); color: white; }
+
     @media (max-width: 760px) {
       nav { padding: 0 14px; }
       .nav-email,
@@ -369,6 +415,19 @@
 
 <div class="toast" id="toast"></div>
 
+<!-- Note modal -->
+<div class="note-modal-overlay" id="noteModalOverlay" hidden>
+  <div class="note-modal">
+    <div class="note-modal-title" id="noteModalTitle">✏️</div>
+    <div class="note-modal-alert" id="noteModalAlert" hidden></div>
+    <textarea id="noteModalBody"></textarea>
+    <div class="note-modal-actions">
+      <button class="btn-note-cancel" id="noteModalCancel"></button>
+      <button class="btn-note-submit" id="noteModalSubmit"></button>
+    </div>
+  </div>
+</div>
+
 <script src="/js/config.js"></script>
 <script type="module">
 import { logout } from '/js/auth.js'
@@ -381,8 +440,12 @@ applyI18n() // run immediately — modules are deferred so DOM is ready
 
 let students = []
 let openLogs = []
+let todayNotes = []
 let currentFilter = 'all'
 let currentSubjectFilter = 'all'
+let currentUserRole = 'view'
+let currentUserEmail = ''
+let noteStudentId = ''
 let toastTimer
 let reloadTimer
 let supportsGradeLevel = true
@@ -392,10 +455,27 @@ async function init() {
   if (!result) return
   const { session, profile } = result
 
+  currentUserRole  = profile?.role || 'view'
+  currentUserEmail = session.user.email
   initBell(session, profile)
   const roleTxt = profile?.role ? ` (${roleLabel(profile.role)})` : ''
   document.getElementById('userEmail').textContent = session.user.email + roleTxt
   document.getElementById('logoutBtn').addEventListener('click', logout)
+
+  // Note modal setup
+  document.getElementById('noteModalCancel').textContent = t('cancelCreate')
+  document.getElementById('noteModalSubmit').textContent = t('notes_submit')
+  document.getElementById('noteModalBody').placeholder = t('notes_ph')
+  document.getElementById('noteModalCancel').addEventListener('click', closeNoteModal)
+  document.getElementById('noteModalSubmit').addEventListener('click', submitNoteModal)
+  document.getElementById('noteModalOverlay').addEventListener('click', e => {
+    if (e.target === document.getElementById('noteModalOverlay')) closeNoteModal()
+  })
+  document.getElementById('studentGrid').addEventListener('click', e => {
+    const btn = e.target.closest('[data-note-id]')
+    if (btn) openNoteModal(btn.dataset.noteId, btn.dataset.noteName)
+  })
+
   document.querySelectorAll('.filter-btn:not(.subj-btn)').forEach(btn => {
     btn.addEventListener('click', () => {
       currentFilter = btn.dataset.filter
@@ -494,10 +574,16 @@ function isMissingGradeLevelError(error) {
   return Boolean(error && /grade_level/i.test(message))
 }
 
+function todayStart() {
+  const d = new Date()
+  d.setHours(0, 0, 0, 0)
+  return d.toISOString()
+}
+
 async function loadDashboard() {
   document.getElementById('statusText').textContent = 'กำลังโหลดข้อมูล...'
 
-  let [{ data: studentData, error: studentErr }, { data: logData, error: logErr }] = await Promise.all([
+  let [{ data: studentData, error: studentErr }, { data: logData, error: logErr }, { data: notesData }] = await Promise.all([
     supabase
       .from('students')
       .select(`
@@ -513,7 +599,11 @@ async function loadDashboard() {
         subjects ( id, name, color )
       `)
       .is('check_out_at', null)
-      .order('check_in_at', { ascending: false })
+      .order('check_in_at', { ascending: false }),
+    supabase
+      .from('student_notes')
+      .select('student_id')
+      .gte('created_at', todayStart())
   ])
 
   if (isMissingGradeLevelError(studentErr)) {
@@ -541,6 +631,7 @@ async function loadDashboard() {
 
   students = studentData || []
   openLogs = logData || []
+  todayNotes = notesData || []
   render()
 }
 
@@ -556,6 +647,8 @@ function logsByStudent() {
 function render() {
   const grid = document.getElementById('studentGrid')
   const openMap = logsByStudent()
+  const noteCountMap = new Map()
+  todayNotes.forEach(n => noteCountMap.set(n.student_id, (noteCountMap.get(n.student_id) || 0) + 1))
   const inClassCount = students.filter(student => openMap.has(student.id)).length
   const visibleStudents = students.filter(student => {
     const inClass = openMap.has(student.id)
@@ -609,6 +702,13 @@ function render() {
         }).join('')
       : '<div>ยังไม่มีรายการเข้าเรียนที่เปิดอยู่</div>'
 
+    const noteCount = noteCountMap.get(student.id) || 0
+    const noteCountHtml = `<span class="note-count${noteCount > 0 ? ' has-notes' : ''}">📝 ${noteCount} ${t('notes_today_label')}</span>`
+    const noteBtn = currentUserRole !== 'view'
+      ? `<button class="btn-write-note" data-note-id="${escapeHtml(student.id)}" data-note-name="${escapeHtml(displayName)}">${t('btn_write_note')}</button>`
+      : ''
+    const cardFooter = `<div class="card-footer">${noteCountHtml}${noteBtn}</div>`
+
     return `
       <article class="student-card ${inClass ? 'in-class' : 'available'}">
         <div class="card-top">
@@ -621,6 +721,7 @@ function render() {
         </div>
         <div class="badge-row">${subjectBadges}${gradeBadge}</div>
         <div class="session-box">${sessionHtml}</div>
+        ${cardFooter}
       </article>`
   }).join('')
 }
@@ -629,6 +730,52 @@ function showError(message) {
   document.getElementById('statusText').textContent = 'โหลดข้อมูลไม่สำเร็จ'
   document.getElementById('studentGrid').innerHTML = `<div class="state-box">${escapeHtml(message)}</div>`
   toast(message, 'err')
+}
+
+function openNoteModal(studentId, studentName) {
+  noteStudentId = studentId
+  document.getElementById('noteModalTitle').textContent = `✏️ ${studentName}`
+  document.getElementById('noteModalBody').value = ''
+  document.getElementById('noteModalAlert').hidden = true
+  document.getElementById('noteModalOverlay').hidden = false
+  setTimeout(() => document.getElementById('noteModalBody').focus(), 50)
+}
+
+function closeNoteModal() {
+  document.getElementById('noteModalOverlay').hidden = true
+  noteStudentId = ''
+}
+
+async function submitNoteModal() {
+  const body = document.getElementById('noteModalBody').value.trim()
+  const alertEl = document.getElementById('noteModalAlert')
+  alertEl.hidden = true
+  if (!body) {
+    alertEl.textContent = t('notes_err_body')
+    alertEl.hidden = false
+    return
+  }
+  const btn = document.getElementById('noteModalSubmit')
+  btn.disabled = true
+  btn.textContent = '...'
+
+  const { error } = await supabase.from('student_notes').insert({
+    student_id: noteStudentId,
+    body,
+    created_by: currentUserEmail,
+  })
+
+  btn.disabled = false
+  btn.textContent = t('notes_submit')
+
+  if (error) {
+    alertEl.textContent = error.message
+    alertEl.hidden = false
+    return
+  }
+  closeNoteModal()
+  toast(t('notes_saved'))
+  await loadDashboard()
 }
 
 function subscribeRealtime() {
@@ -643,6 +790,10 @@ function subscribeRealtime() {
       reloadTimer = setTimeout(loadDashboard, 300)
     })
     .on('postgres_changes', { event: '*', schema: 'public', table: 'student_subjects' }, () => {
+      clearTimeout(reloadTimer)
+      reloadTimer = setTimeout(loadDashboard, 300)
+    })
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'student_notes' }, () => {
       clearTimeout(reloadTimer)
       reloadTimer = setTimeout(loadDashboard, 300)
     })

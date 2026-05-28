@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KUMON — บันทึกพัฒนาการ</title>
+  <style>
+    :root {
+      --bg: #eaf4fb; --navy: #1a4a6e; --primary: #f97316;
+      --gold: #c9a227; --blue: #5ba4cf; --text: #1a202c;
+      --muted: #5a7a92; --border: #c5e3f2; --card: #ffffff;
+      --ok-bg: #f0fdf4; --ok-fg: #166534; --ok-bd: #86efac;
+      --err-bg: #fff7ed; --err-fg: #c2410c; --err-bd: #fdba74;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', Tahoma, sans-serif; background: var(--bg); min-height: 100vh; }
+
+    nav {
+      background: var(--navy); padding: 0 20px; height: 58px;
+      display: flex; align-items: center; justify-content: space-between;
+      position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 8px rgba(0,0,0,.2);
+    }
+    .nav-brand { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+    .nav-brand img { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; border: 2px solid var(--gold); }
+    .nav-brand span { font-weight: 700; font-size: 1rem; color: white; }
+    .nav-right { display: flex; align-items: center; gap: 10px; }
+    .nav-back { background: transparent; border: 1px solid #3a6a90; color: #a0c4dd; padding: 5px 12px; border-radius: 6px; cursor: pointer; font-size: .8rem; text-decoration: none; white-space: nowrap; }
+    .nav-back:hover { background: #3a6a90; color: white; }
+    .nav-email { font-size: .78rem; color: #a0c4dd; max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    .hero { background: linear-gradient(135deg, var(--navy) 0%, #2a6496 100%); color: white; padding: 28px 20px; text-align: center; }
+    .hero h2 { font-size: 1.4rem; font-weight: 700; margin-bottom: 5px; }
+    .hero p { color: #a0c4dd; font-size: .88rem; }
+
+    .container { max-width: 800px; margin: 0 auto; padding: 22px 16px 40px; display: flex; flex-direction: column; gap: 16px; }
+
+    /* ── Write card ── */
+    .write-card {
+      background: var(--card); border-radius: 14px; padding: 20px;
+      box-shadow: 0 2px 10px rgba(26,74,110,.08); border: 1px solid rgba(197,227,242,.6);
+    }
+    .card-title { font-size: .95rem; font-weight: 700; color: var(--navy); margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+    .card-title span { font-size: 1.1rem; }
+
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+    .form-group { display: flex; flex-direction: column; gap: 5px; }
+    .form-group label { font-size: .8rem; font-weight: 600; color: var(--navy); }
+    .form-group select, .form-group input {
+      padding: 9px 12px; border: 1.5px solid var(--border); border-radius: 9px;
+      font-size: .9rem; background: white; color: var(--text);
+    }
+    .form-group select:focus, .form-group input:focus { outline: none; border-color: var(--blue); }
+    textarea#noteBody {
+      width: 100%; padding: 10px 12px; border: 1.5px solid var(--border); border-radius: 9px;
+      font-size: .9rem; font-family: inherit; background: white; resize: vertical; min-height: 100px;
+      color: var(--text); margin-bottom: 10px;
+    }
+    textarea#noteBody:focus { outline: none; border-color: var(--blue); }
+
+    .form-actions { display: flex; gap: 10px; justify-content: flex-end; }
+    .btn { border: none; border-radius: 9px; padding: 9px 20px; font-size: .875rem; font-weight: 700; cursor: pointer; }
+    .btn-primary { background: linear-gradient(135deg, var(--primary), #fb923c); color: white; box-shadow: 0 4px 12px rgba(249,115,22,.28); }
+    .btn-primary:disabled { opacity: .5; cursor: not-allowed; }
+    .alert { border-radius: 9px; padding: 10px 14px; font-size: .85rem; margin-bottom: 10px; display: none; }
+    .alert.err { background: var(--err-bg); border: 1px solid var(--err-bd); color: var(--err-fg); }
+    .alert.ok  { background: var(--ok-bg);  border: 1px solid var(--ok-bd);  color: var(--ok-fg);  }
+
+    /* ── Filter bar ── */
+    .filter-bar {
+      background: var(--card); border-radius: 12px; padding: 14px 18px;
+      box-shadow: 0 2px 8px rgba(26,74,110,.07); border: 1px solid rgba(197,227,242,.6);
+      display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    }
+    .filter-bar label { font-size: .8rem; font-weight: 700; color: var(--muted); white-space: nowrap; }
+    .filter-bar select { padding: 7px 10px; border: 1.5px solid var(--border); border-radius: 8px; font-size: .85rem; background: white; color: var(--text); flex: 1; min-width: 140px; }
+
+    /* ── Notes list ── */
+    .section-heading { font-size: .8rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; }
+
+    .notes-list { display: flex; flex-direction: column; gap: 10px; }
+
+    .note-card {
+      background: var(--card); border-radius: 12px; padding: 16px 18px;
+      box-shadow: 0 1px 6px rgba(26,74,110,.07); border: 1px solid rgba(197,227,242,.5);
+      border-left: 4px solid var(--primary);
+    }
+    .note-header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+    .note-avatar {
+      width: 38px; height: 38px; border-radius: 50%; object-fit: cover;
+      border: 2px solid var(--border); flex-shrink: 0;
+    }
+    .note-avatar-placeholder {
+      width: 38px; height: 38px; border-radius: 50%; flex-shrink: 0;
+      background: linear-gradient(135deg, var(--navy), var(--blue));
+      display: flex; align-items: center; justify-content: center;
+      color: white; font-weight: 700; font-size: .95rem;
+    }
+    .note-student-info { flex: 1; min-width: 0; }
+    .note-student-name { font-size: .93rem; font-weight: 700; color: var(--navy); }
+    .note-session { font-size: .76rem; color: var(--muted); margin-top: 2px; }
+    .note-time { font-size: .76rem; color: var(--muted); text-align: right; white-space: nowrap; }
+    .note-body { font-size: .9rem; color: var(--text); line-height: 1.55; white-space: pre-wrap; word-break: break-word; }
+    .note-by { font-size: .76rem; color: var(--muted); margin-top: 8px; }
+
+    .empty-state { text-align: center; padding: 36px; color: var(--muted); font-size: .9rem; background: var(--card); border-radius: 12px; }
+    .empty-state a { color: var(--primary); text-decoration: none; }
+
+    #statusMsg { text-align: center; padding: 20px; color: var(--muted); font-size: .9rem; }
+
+    .toast {
+      position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px);
+      background: #1e293b; color: white; padding: 10px 20px; border-radius: 10px;
+      font-size: .88rem; font-weight: 600; transition: transform .25s; z-index: 999; white-space: nowrap;
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); }
+    .toast.ok  { background: #166534; }
+    .toast.err { background: #c2410c; }
+
+    @media (max-width: 600px) {
+      .form-row { grid-template-columns: 1fr; }
+      .nav-email { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="/index.html" class="nav-brand">
+    <img src="/LOGO.jpg" alt="KUMON">
+    <span>KUMON โพนพิสัย</span>
+  </a>
+  <div class="nav-right">
+    <span class="nav-email" id="userEmail"></span>
+    <a href="/index.html" class="nav-back" data-i18n="nav_home">← หน้าหลัก</a>
+  </div>
+</nav>
+
+<div class="hero">
+  <h2 data-i18n="notes_title">📝 บันทึกพัฒนาการ</h2>
+  <p data-i18n="notes_sub">บันทึกโดยครู สำหรับนักเรียนที่ผู้ปกครองติดตาม</p>
+</div>
+
+<div class="container">
+
+  <!-- Write form (admin/teacher only) -->
+  <div class="write-card" id="writeSection" hidden>
+    <div class="card-title"><span>✏️</span><span data-i18n="notes_write_title">เขียนบันทึกใหม่</span></div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>นักเรียน</label>
+        <select id="noteStudent">
+          <option value="" data-i18n-opt="notes_select_student">— เลือกนักเรียน —</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>วันที่</label>
+        <input id="noteDate" type="text" readonly>
+      </div>
+    </div>
+    <textarea id="noteBody" data-i18n-ph="notes_ph" placeholder="เขียนบันทึกพัฒนาการ ความก้าวหน้า หรือข้อสังเกต..."></textarea>
+    <div class="alert err" id="noteAlert"></div>
+    <div class="form-actions">
+      <button class="btn btn-primary" id="noteSubmit" data-i18n="notes_submit">บันทึก</button>
+    </div>
+  </div>
+
+  <!-- Filter (admin/teacher only) -->
+  <div class="filter-bar" id="filterBar" hidden>
+    <label>กรองนักเรียน</label>
+    <select id="filterStudent">
+      <option value="" data-i18n="notes_all">ทุกนักเรียน</option>
+    </select>
+  </div>
+
+  <!-- Notes list -->
+  <div class="section-heading" id="listHeading" data-i18n="notes_history">ประวัติบันทึก</div>
+  <div id="statusMsg">กำลังโหลด...</div>
+  <div class="notes-list" id="notesList"></div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="/js/config.js"></script>
+<script type="module">
+import { supabase }    from '/js/supabase.js'
+import { requirePage } from '/js/rbac.js'
+import { applyI18n, t, getLang } from '/js/i18n.js'
+import { getLocalWatches, loadWatches } from '/js/notifications.js'
+
+applyI18n()
+
+let currentRole = 'view'
+let currentUserId = ''
+let currentUserEmail = ''
+let allStudents = []
+let watchedIds = []
+let allNotes = []
+let filterStudentId = ''
+let toastTimer
+
+// ── Init ─────────────────────────────────────────────────────
+async function init() {
+  const result = await requirePage('notes')
+  if (!result) return
+  const { session, profile } = result
+  currentRole      = profile?.role || 'view'
+  currentUserId    = session.user.id
+  currentUserEmail = session.user.email
+  document.getElementById('userEmail').textContent = currentUserEmail
+
+  const isWriter = currentRole === 'admin' || currentRole === 'teacher'
+
+  if (isWriter) {
+    document.getElementById('writeSection').hidden = false
+    document.getElementById('filterBar').hidden = false
+    document.getElementById('listHeading').setAttribute('data-i18n', 'notes_history')
+    document.getElementById('listHeading').textContent = t('notes_history')
+    setupDateField()
+    await loadStudents()
+    setupWriteForm()
+  } else {
+    document.getElementById('listHeading').setAttribute('data-i18n', 'notes_my_students')
+    document.getElementById('listHeading').textContent = t('notes_my_students')
+    watchedIds = await loadWatches(currentUserId)
+  }
+
+  await loadNotes()
+  subscribeRealtime()
+}
+
+// ── Date field ───────────────────────────────────────────────
+function setupDateField() {
+  const d = new Date()
+  const fmt = new Intl.DateTimeFormat('th-TH', {
+    year: 'numeric', month: 'long', day: 'numeric'
+  }).format(d)
+  document.getElementById('noteDate').value = fmt
+}
+
+// ── Load students for selector ───────────────────────────────
+async function loadStudents() {
+  const { data } = await supabase
+    .from('students')
+    .select('id, name, nickname')
+    .eq('is_active', true)
+    .order('name')
+  allStudents = data || []
+
+  const sel  = document.getElementById('noteStudent')
+  const fsel = document.getElementById('filterStudent')
+  for (const s of allStudents) {
+    const label = s.nickname ? `${s.name} (${s.nickname})` : s.name
+    const opt1 = new Option(label, s.id)
+    const opt2 = new Option(label, s.id)
+    sel.appendChild(opt1)
+    fsel.appendChild(opt2)
+  }
+
+  fsel.addEventListener('change', () => {
+    filterStudentId = fsel.value
+    renderNotes()
+  })
+}
+
+// ── Write form ───────────────────────────────────────────────
+function setupWriteForm() {
+  document.getElementById('noteSubmit').addEventListener('click', submitNote)
+  document.getElementById('noteBody').addEventListener('keydown', e => {
+    if (e.key === 'Enter' && e.ctrlKey) submitNote()
+  })
+}
+
+async function submitNote() {
+  const studentId = document.getElementById('noteStudent').value
+  const body = document.getElementById('noteBody').value.trim()
+  const alertEl = document.getElementById('noteAlert')
+  alertEl.style.display = 'none'
+
+  if (!studentId) return showNoteAlert(t('notes_err_select'))
+  if (!body)      return showNoteAlert(t('notes_err_body'))
+
+  const btn = document.getElementById('noteSubmit')
+  btn.disabled = true
+  btn.textContent = '...'
+
+  const { error } = await supabase.from('student_notes').insert({
+    student_id: studentId,
+    body,
+    created_by: currentUserEmail,
+  })
+
+  btn.disabled = false
+  btn.textContent = t('notes_submit')
+
+  if (error) return showNoteAlert(error.message)
+
+  document.getElementById('noteBody').value = ''
+  document.getElementById('noteStudent').value = ''
+  toast(t('notes_saved'), 'ok')
+  await loadNotes()
+}
+
+function showNoteAlert(msg) {
+  const el = document.getElementById('noteAlert')
+  el.textContent = msg
+  el.style.display = 'block'
+}
+
+// ── Load notes ───────────────────────────────────────────────
+async function loadNotes() {
+  document.getElementById('statusMsg').textContent = t('loading')
+  document.getElementById('notesList').innerHTML = ''
+
+  let query = supabase
+    .from('student_notes')
+    .select(`
+      id, student_id, body, created_by, created_at, log_id,
+      students(id, name, nickname, photo_url),
+      attendance_logs(check_in_at, subjects(name))
+    `)
+    .order('created_at', { ascending: false })
+    .limit(100)
+
+  // VIEW users see only watched students
+  if (currentRole === 'view') {
+    if (!watchedIds.length) {
+      document.getElementById('statusMsg').textContent = ''
+      document.getElementById('notesList').innerHTML =
+        `<div class="empty-state">${t('notes_no_watch')} <a href="/notify.html">→ การแจ้งเตือน</a></div>`
+      return
+    }
+    query = query.in('student_id', watchedIds)
+  }
+
+  const { data, error } = await query
+  if (error) {
+    document.getElementById('statusMsg').textContent = error.message
+    return
+  }
+  allNotes = data || []
+  document.getElementById('statusMsg').textContent = ''
+  renderNotes()
+}
+
+// ── Render ───────────────────────────────────────────────────
+function renderNotes() {
+  const list = document.getElementById('notesList')
+  const notes = filterStudentId
+    ? allNotes.filter(n => n.student_id === filterStudentId)
+    : allNotes
+
+  if (!notes.length) {
+    list.innerHTML = `<div class="empty-state">${t('notes_empty')}</div>`
+    return
+  }
+
+  const lang = getLang()
+  list.innerHTML = notes.map(n => {
+    const student = n.students
+    const initial = ((student?.nickname || student?.name || '?')[0]).toUpperCase()
+    const avatar = student?.photo_url
+      ? `<img class="note-avatar" src="${escapeHtml(student.photo_url)}" alt="">`
+      : `<div class="note-avatar-placeholder">${escapeHtml(initial)}</div>`
+
+    const name = escapeHtml(student?.name || '-')
+    const nick = student?.nickname ? ` (${escapeHtml(student.nickname)})` : ''
+
+    const subject = n.attendance_logs?.subjects?.name
+    const sessionStr = subject
+      ? `📚 ${escapeHtml(subject)} · ${fmtDate(n.attendance_logs?.check_in_at, lang)}`
+      : fmtDate(n.created_at, lang)
+
+    return `
+      <div class="note-card">
+        <div class="note-header">
+          ${avatar}
+          <div class="note-student-info">
+            <div class="note-student-name">${name}${nick}</div>
+            <div class="note-session">${sessionStr}</div>
+          </div>
+          <div class="note-time">${fmtTime(n.created_at)}</div>
+        </div>
+        <div class="note-body">${escapeHtml(n.body)}</div>
+        <div class="note-by">${t('notes_by')} ${escapeHtml(n.created_by)}</div>
+      </div>`
+  }).join('')
+}
+
+// ── Realtime ─────────────────────────────────────────────────
+function subscribeRealtime() {
+  supabase.channel('notes-channel')
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'student_notes' }, async () => {
+      await loadNotes()
+    })
+    .subscribe()
+}
+
+// ── Helpers ──────────────────────────────────────────────────
+function escapeHtml(v) {
+  return String(v ?? '').replace(/[&<>"']/g, c =>
+    ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#039;' }[c])
+  )
+}
+
+function fmtDate(v, lang = 'th') {
+  if (!v) return '-'
+  return new Intl.DateTimeFormat(lang === 'th' ? 'th-TH' : 'en-GB', {
+    day: 'numeric', month: 'short', year: 'numeric'
+  }).format(new Date(v))
+}
+
+function fmtTime(v) {
+  if (!v) return '-'
+  return new Intl.DateTimeFormat('th-TH', { hour: '2-digit', minute: '2-digit' }).format(new Date(v))
+}
+
+function toast(msg, type = 'ok') {
+  const el = document.getElementById('toast')
+  el.textContent = msg
+  el.className = `toast ${type} show`
+  clearTimeout(toastTimer)
+  toastTimer = setTimeout(() => el.classList.remove('show'), 3500)
+}
+
+init()
+</script>
+<script src="/js/version.js"></script>
+</body>
+</html>
