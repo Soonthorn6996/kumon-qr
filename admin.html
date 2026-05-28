@@ -750,6 +750,8 @@ import { requirePage } from '/js/rbac.js'
 import { initBell } from '/js/bell.js'
 import { applyI18n } from '/js/i18n.js'
 
+applyI18n()
+
 let students  = []
 let editingId = null   // null = add mode, uuid = edit mode
 let supportsGradeLevel = true
@@ -764,7 +766,6 @@ async function init() {
   if (!result) return
   const { session, profile } = result
 
-  applyI18n()
   initBell(session, profile)
   document.getElementById('userEmail').textContent = session.user.email
   document.getElementById('logoutBtn').addEventListener('click', logout)

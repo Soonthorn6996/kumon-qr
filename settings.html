@@ -216,6 +216,8 @@ import { supabase } from '/js/supabase.js'
 import { requirePage, roleLabel, roleBadge } from '/js/rbac.js'
 import { getLang, setLang, t, applyI18n } from '/js/i18n.js'
 
+applyI18n() // immediate — handles data-i18n elements before auth resolves
+
 /* ─────────────────────────── i18n ─────────────────────────── */
 function applyLang() {
   applyI18n()

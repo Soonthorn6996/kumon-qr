@@ -377,6 +377,8 @@ import { requirePage, roleLabel } from '/js/rbac.js'
 import { initBell } from '/js/bell.js'
 import { applyI18n, t } from '/js/i18n.js'
 
+applyI18n() // run immediately — modules are deferred so DOM is ready
+
 let students = []
 let openLogs = []
 let currentFilter = 'all'
@@ -390,7 +392,6 @@ async function init() {
   if (!result) return
   const { session, profile } = result
 
-  applyI18n()
   initBell(session, profile)
   const roleTxt = profile?.role ? ` (${roleLabel(profile.role)})` : ''
   document.getElementById('userEmail').textContent = session.user.email + roleTxt

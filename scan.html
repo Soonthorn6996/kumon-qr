@@ -492,6 +492,8 @@ import { requirePage } from '/js/rbac.js'
 import { initBell } from '/js/bell.js'
 import { applyI18n } from '/js/i18n.js'
 
+applyI18n()
+
 const statusEl = document.getElementById('scanStatus')
 const resultEl = document.getElementById('resultBox')
 const historyEl = document.getElementById('historyList')
@@ -517,7 +519,6 @@ async function init() {
   const { session, profile } = result
 
   currentUserEmail = session.user.email
-  applyI18n()
   initBell(session, profile)
   document.getElementById('userEmail').textContent = currentUserEmail
   document.getElementById('logoutBtn').addEventListener('click', logout)

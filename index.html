@@ -238,11 +238,12 @@
   import { initBell } from '/js/bell.js'
   import { applyI18n } from '/js/i18n.js'
 
+  applyI18n()
+
   async function init() {
     const result = await requirePage('dashboard')
     if (!result) return
     const { session, profile } = result
-    applyI18n()
     initBell(session, profile)
 
     const role = profile?.role || 'view'

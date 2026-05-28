@@ -175,6 +175,8 @@
     requestPermission, getPermission, registerSW
   } from '/js/notifications.js'
 
+  applyI18n()
+
   const ROLE_LABELS = { admin: 'ผู้ดูแลระบบ', teacher: 'ครูผู้ช่วย', view: 'ดูอย่างเดียว' }
   const ROLE_BADGE  = { admin: 'badge-admin', teacher: 'badge-teacher', view: 'badge-view' }
 
@@ -191,7 +193,6 @@
     currentUserId  = session.user.id
     selectedUserId = session.user.id
 
-    applyI18n()
     await registerSW()
     updatePermUI()
     document.getElementById('permBtn').addEventListener('click', onPermClick)
