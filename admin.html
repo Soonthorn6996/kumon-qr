@@ -494,6 +494,31 @@
     .form-hint { font-size: .75rem; color: var(--muted); margin-top: 4px; }
     .form-opt  { font-weight: 400; color: var(--muted); font-size: .78rem; }
 
+    /* ── Subject Filter ─────────────────────────────── */
+    .subject-filter {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 8px 16px 0;
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .filter-btn {
+      border: 1px solid var(--border);
+      background: #fff;
+      color: var(--navy);
+      border-radius: 8px;
+      padding: 7px 14px;
+      font-size: .82rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .filter-btn.active      { background: var(--navy); border-color: var(--navy); color: #fff; }
+    .filter-btn.math.active { background: #c2410c; border-color: #c2410c; color: #fff; }
+    .filter-btn.thai.active { background: #6d28d9; border-color: #6d28d9; color: #fff; }
+    .filter-btn.eng.active  { background: #1d4ed8; border-color: #1d4ed8; color: #fff; }
+
     /* ── Mobile Responsive ───────────────────────────── */
     @media (max-width: 640px) {
       .nav-email { display: none; }
@@ -619,6 +644,13 @@
   <div class="result-count" id="resultCount"></div>
 </section>
 
+<section class="subject-filter" aria-label="กรองตามวิชา">
+  <button type="button" class="filter-btn active" data-subject="all">ทุกวิชา</button>
+  <button type="button" class="filter-btn math" data-subject="math">MATH</button>
+  <button type="button" class="filter-btn thai" data-subject="thai">THAI</button>
+  <button type="button" class="filter-btn eng" data-subject="eng">ENG</button>
+</section>
+
 <div class="container">
   <div class="student-grid" id="studentGrid">
     <div class="state-box">
@@ -721,6 +753,7 @@ let students  = []
 let editingId = null   // null = add mode, uuid = edit mode
 let supportsGradeLevel = true
 let searchTerm = ''
+let subjectFilter = ''
 const subjectIdCache = {}  // { 'MATH': uuid, 'THAI': uuid, 'ENG': uuid }
 
 // ── Init ─────────────────────────────────────────────────────
@@ -753,6 +786,14 @@ async function init() {
     clearSearch.classList.remove('show')
     searchInput.focus()
     renderStudents()
+  })
+
+  document.querySelectorAll('.subject-filter .filter-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      subjectFilter = btn.dataset.subject === 'all' ? '' : btn.dataset.subject
+      document.querySelectorAll('.subject-filter .filter-btn').forEach(el => el.classList.toggle('active', el === btn))
+      renderStudents()
+    })
   })
 
   document.querySelectorAll('.modal-overlay').forEach(el => {
@@ -886,8 +927,14 @@ function studentSearchText(student) {
 }
 
 function filteredStudents() {
-  if (!searchTerm) return students
-  return students.filter(student => studentSearchText(student).includes(searchTerm))
+  return students.filter(student => {
+    if (searchTerm && !studentSearchText(student).includes(searchTerm)) return false
+    if (subjectFilter) {
+      const subs = normalizeStudentSubjects(student.student_subjects || [])
+      if (!subs.some(row => cls(row.subjects.name) === subjectFilter)) return false
+    }
+    return true
+  })
 }
 
 function qrDarkColor(name = '') {
@@ -991,7 +1038,8 @@ function renderStudents() {
   const resultCount = document.getElementById('resultCount')
   const visibleStudents = filteredStudents()
   count.textContent = `${students.length} คน`
-  resultCount.textContent = searchTerm
+  const isFiltered = searchTerm || subjectFilter
+  resultCount.textContent = isFiltered
     ? `พบ ${visibleStudents.length} จาก ${students.length} คน`
     : `ทั้งหมด ${students.length} คน`
 

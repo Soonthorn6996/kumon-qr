@@ -176,6 +176,11 @@
       color: #fff;
     }
 
+    .filter-sep { color: var(--border); font-size: 1.1rem; align-self: center; user-select: none; }
+    .filter-btn.math.active  { background: #c2410c; border-color: #c2410c; }
+    .filter-btn.thai.active  { background: #6d28d9; border-color: #6d28d9; }
+    .filter-btn.eng.active   { background: #1d4ed8; border-color: #1d4ed8; }
+
     .student-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
@@ -349,6 +354,11 @@
       <button type="button" class="filter-btn active" data-filter="all">ทั้งหมด</button>
       <button type="button" class="filter-btn" data-filter="in">กำลังเรียน</button>
       <button type="button" class="filter-btn" data-filter="out">ว่าง</button>
+      <span class="filter-sep">|</span>
+      <button type="button" class="filter-btn subj-btn active" data-subject="all">ทุกวิชา</button>
+      <button type="button" class="filter-btn subj-btn math" data-subject="math">MATH</button>
+      <button type="button" class="filter-btn subj-btn thai" data-subject="thai">THAI</button>
+      <button type="button" class="filter-btn subj-btn eng" data-subject="eng">ENG</button>
     </div>
   </section>
 
@@ -369,6 +379,7 @@ import { initBell } from '/js/bell.js'
 let students = []
 let openLogs = []
 let currentFilter = 'all'
+let currentSubjectFilter = 'all'
 let toastTimer
 let reloadTimer
 let supportsGradeLevel = true
@@ -382,10 +393,17 @@ async function init() {
   const roleTxt = profile?.role ? ` (${roleLabel(profile.role)})` : ''
   document.getElementById('userEmail').textContent = session.user.email + roleTxt
   document.getElementById('logoutBtn').addEventListener('click', logout)
-  document.querySelectorAll('.filter-btn').forEach(btn => {
+  document.querySelectorAll('.filter-btn:not(.subj-btn)').forEach(btn => {
     btn.addEventListener('click', () => {
       currentFilter = btn.dataset.filter
-      document.querySelectorAll('.filter-btn').forEach(el => el.classList.toggle('active', el === btn))
+      document.querySelectorAll('.filter-btn:not(.subj-btn)').forEach(el => el.classList.toggle('active', el === btn))
+      render()
+    })
+  })
+  document.querySelectorAll('.subj-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      currentSubjectFilter = btn.dataset.subject
+      document.querySelectorAll('.subj-btn').forEach(el => el.classList.toggle('active', el === btn))
       render()
     })
   })
@@ -538,8 +556,12 @@ function render() {
   const inClassCount = students.filter(student => openMap.has(student.id)).length
   const visibleStudents = students.filter(student => {
     const inClass = openMap.has(student.id)
-    if (currentFilter === 'in') return inClass
-    if (currentFilter === 'out') return !inClass
+    if (currentFilter === 'in' && !inClass) return false
+    if (currentFilter === 'out' && inClass) return false
+    if (currentSubjectFilter !== 'all') {
+      const subs = normalizeStudentSubjects(student.student_subjects || [])
+      if (!subs.some(row => cls(row.subjects.name) === currentSubjectFilter)) return false
+    }
     return true
   })
 
