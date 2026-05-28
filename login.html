@@ -136,6 +136,30 @@
       display: none;
     }
 
+    .remember-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 18px;
+    }
+
+    .remember-row input[type=checkbox] {
+      width: 16px;
+      height: 16px;
+      margin: 0;
+      accent-color: var(--primary);
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    .remember-row label {
+      margin: 0;
+      font-size: .85rem;
+      font-weight: 500;
+      color: var(--muted);
+      cursor: pointer;
+    }
+
     .footer-note {
       text-align: center;
       margin-top: 20px;
@@ -171,6 +195,11 @@
     <label for="password">รหัสผ่าน</label>
     <input type="password" id="password" placeholder="••••••••" required autocomplete="current-password">
 
+    <div class="remember-row">
+      <input type="checkbox" id="rememberMe">
+      <label for="rememberMe">จดจำบัญชีนี้</label>
+    </div>
+
     <button type="submit" id="submitBtn">เข้าสู่ระบบ</button>
   </form>
 
@@ -185,9 +214,23 @@
   const { data: { session } } = await supabase.auth.getSession()
   if (session) window.location.href = '/index.html'
 
-  const form   = document.getElementById('loginForm')
-  const errEl  = document.getElementById('errorMsg')
-  const btn    = document.getElementById('submitBtn')
+  const form       = document.getElementById('loginForm')
+  const errEl      = document.getElementById('errorMsg')
+  const btn        = document.getElementById('submitBtn')
+  const emailEl    = document.getElementById('email')
+  const passwordEl = document.getElementById('password')
+  const rememberEl = document.getElementById('rememberMe')
+
+  // โหลด credentials ที่บันทึกไว้
+  const saved = localStorage.getItem('classscan_remember')
+  if (saved) {
+    try {
+      const { email, password } = JSON.parse(saved)
+      emailEl.value    = email    || ''
+      passwordEl.value = password || ''
+      rememberEl.checked = true
+    } catch { localStorage.removeItem('classscan_remember') }
+  }
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault()
@@ -195,10 +238,17 @@
     btn.disabled = true
     btn.textContent = 'กำลังเข้าสู่ระบบ...'
 
-    const { error } = await login(
-      document.getElementById('email').value.trim(),
-      document.getElementById('password').value
-    )
+    const email    = emailEl.value.trim()
+    const password = passwordEl.value
+
+    // บันทึกหรือลบ credentials ตาม checkbox
+    if (rememberEl.checked) {
+      localStorage.setItem('classscan_remember', JSON.stringify({ email, password }))
+    } else {
+      localStorage.removeItem('classscan_remember')
+    }
+
+    const { error } = await login(email, password)
 
     if (error) {
       errEl.textContent = 'อีเมลหรือรหัสผ่านไม่ถูกต้อง'
