@@ -193,28 +193,28 @@
 
 <div class="container">
   <div class="menu-grid">
-    <a href="/scan.html" class="menu-card orange">
+    <a href="/scan.html" class="menu-card orange" id="cardScan">
       <span class="icon">📷</span>
       <div>
         <h3>สแกน QR</h3>
         <p>บันทึกเข้า-ออกห้องเรียน</p>
       </div>
     </a>
-    <a href="/dashboard.html" class="menu-card blue">
+    <a href="/dashboard.html" class="menu-card blue" id="cardDashboard">
       <span class="icon">📊</span>
       <div>
         <h3>Dashboard</h3>
         <p>ดูสถานะนักเรียน Realtime</p>
       </div>
     </a>
-    <a href="/admin.html" class="menu-card gold">
+    <a href="/admin.html" class="menu-card gold" id="cardAdmin">
       <span class="icon">👨‍🎓</span>
       <div>
         <h3>จัดการนักเรียน</h3>
         <p>เพิ่มนักเรียน + สร้าง QR Code</p>
       </div>
     </a>
-    <a href="/settings.html" class="menu-card green">
+    <a href="/settings.html" class="menu-card green" id="cardSettings">
       <span class="icon">⚙️</span>
       <div>
         <h3>ตั้งค่าระบบ</h3>
@@ -226,14 +226,27 @@
 
 <script src="/js/config.js"></script>
 <script type="module">
-  import { requireAuth, logout } from '/js/auth.js'
+  import { logout } from '/js/auth.js'
+  import { requirePage, roleLabel } from '/js/rbac.js'
 
   async function init() {
-    const session = await requireAuth()
-    if (!session) return
+    const result = await requirePage('dashboard')
+    if (!result) return
+    const { session, profile } = result
 
-    document.getElementById('userEmail').textContent = session.user.email
+    const role = profile?.role || 'view'
+    const roleTxt = profile?.role ? ` · ${roleLabel(role)}` : ''
+    document.getElementById('userEmail').textContent = session.user.email + roleTxt
     document.getElementById('logoutBtn').addEventListener('click', logout)
+
+    // Hide menu cards based on role
+    if (role === 'view') {
+      document.getElementById('cardScan')?.remove()
+      document.getElementById('cardAdmin')?.remove()
+      document.getElementById('cardSettings')?.remove()
+    } else if (role === 'teacher') {
+      document.getElementById('cardSettings')?.remove()
+    }
   }
 
   init()

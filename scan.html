@@ -486,8 +486,9 @@
   }
 </script>
 <script type="module">
-import { requireAuth, logout } from '/js/auth.js'
+import { logout } from '/js/auth.js'
 import { supabase } from '/js/supabase.js'
+import { requirePage } from '/js/rbac.js'
 
 const statusEl = document.getElementById('scanStatus')
 const resultEl = document.getElementById('resultBox')
@@ -509,8 +510,9 @@ let cameraChangeBound = false
 let currentUserEmail = ''
 
 async function init() {
-  const session = await requireAuth()
-  if (!session) return
+  const result = await requirePage('scan')
+  if (!result) return
+  const { session } = result
 
   currentUserEmail = session.user.email
   document.getElementById('userEmail').textContent = currentUserEmail

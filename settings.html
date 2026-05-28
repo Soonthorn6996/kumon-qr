@@ -89,6 +89,12 @@
     .user-email  { color: var(--navy); font-weight: 600; }
     .user-meta   { font-size: .75rem; color: var(--muted); margin-top: 2px; }
     .you-badge   { display: inline-block; margin-left: 6px; padding: 2px 7px; border-radius: 999px; font-size: .68rem; font-weight: 700; background: #eff6ff; color: #1d4ed8; border: 1px solid #93c5fd; }
+    .role-select { padding: 5px 8px; border: 1.5px solid var(--border); border-radius: 7px; font-size: .82rem; background: #f5fbff; color: var(--navy); cursor: pointer; }
+    .role-select:focus { outline: none; border-color: var(--blue); }
+    .role-badge { display: inline-block; padding: 3px 9px; border-radius: 999px; font-size: .75rem; font-weight: 700; }
+    .badge-admin   { background: #eff6ff; color: #1d4ed8; border: 1px solid #93c5fd; }
+    .badge-teacher { background: #f0fdf4; color: #15803d; border: 1px solid #86efac; }
+    .badge-view    { background: #f8fafc; color: #475569; border: 1px solid #cbd5e1; }
 
     /* ── State box ── */
     .state-box { text-align: center; padding: 28px; color: var(--muted); font-size: .9rem; }
@@ -188,6 +194,7 @@
         <thead>
           <tr>
             <th id="colEmail">อีเมล</th>
+            <th id="colRole">สิทธิ์</th>
             <th id="colCreated">วันที่สร้าง</th>
           </tr>
         </thead>
@@ -203,8 +210,9 @@
 
 <script src="/js/config.js"></script>
 <script type="module">
-import { requireAuth, logout } from '/js/auth.js'
+import { logout } from '/js/auth.js'
 import { supabase } from '/js/supabase.js'
+import { requirePage, roleLabel, roleBadge } from '/js/rbac.js'
 
 /* ─────────────────────────── i18n ─────────────────────────── */
 const T = {
@@ -218,7 +226,7 @@ const T = {
     phEmail: 'staff@example.com', phPwd: 'อย่างน้อย 6 ตัวอักษร', phConfirm: 'พิมพ์รหัสผ่านอีกครั้ง',
     formNote: '⚠️ หากปิด Email Confirmation ใน Supabase ระบบจะ Sign Out อัตโนมัติหลังสร้างผู้ใช้ กรุณาเปิด Email Confirmation ไว้',
     submitCreate: 'สร้างบัญชี', cancelCreate: 'ยกเลิก',
-    colEmail: 'อีเมล', colCreated: 'วันที่สร้าง',
+    colEmail: 'อีเมล', colRole: 'สิทธิ์', colCreated: 'วันที่สร้าง',
     loading: 'กำลังโหลดรายชื่อผู้ใช้...', empty: 'ยังไม่มีบัญชีผู้ใช้ในระบบ',
     creating: 'กำลังสร้าง...',
     errEmail: 'กรุณากรอกอีเมล',
@@ -239,7 +247,7 @@ const T = {
     phEmail: 'staff@example.com', phPwd: 'At least 6 characters', phConfirm: 'Re-enter password',
     formNote: '⚠️ If Email Confirmation is disabled in Supabase, the system will auto sign-out after creating a user. Please enable Email Confirmation.',
     submitCreate: 'Create Account', cancelCreate: 'Cancel',
-    colEmail: 'Email', colCreated: 'Created At',
+    colEmail: 'Email', colRole: 'Role', colCreated: 'Created At',
     loading: 'Loading users...', empty: 'No user accounts found',
     creating: 'Creating...',
     errEmail: 'Please enter email',
@@ -265,7 +273,7 @@ function applyLang() {
   const ids = ['navHome','navLogout','ttlPage','ttlSub','ttlLang','ttlLangDesc',
                 'ttlUsers','ttlUsersDesc','toggleCreateBtn','lblEmail','lblPwd',
                 'lblConfirm','formNote','submitCreateBtn','cancelCreateBtn',
-                'colEmail','colCreated']
+                'colEmail','colRole','colCreated']
   const keyMap = { toggleCreateBtn: 'toggleCreate', submitCreateBtn: 'submitCreate', cancelCreateBtn: 'cancelCreate' }
   ids.forEach(id => {
     const el = document.getElementById(id)
@@ -325,7 +333,7 @@ async function loadUsers() {
 
   const { data, error } = await supabase
     .from('profiles')
-    .select('id, email, display_name, created_at')
+    .select('id, email, display_name, role, created_at')
     .order('created_at', { ascending: true })
 
   if (error) {
@@ -348,8 +356,19 @@ async function loadUsers() {
 
   stateEl.style.display = 'none'
   tableEl.style.display = 'table'
+  const lang = getLang()
+  const roleOpts = ['admin','teacher','view'].map(v =>
+    `<option value="${v}">${escapeHtml(roleLabel(v, lang))}</option>`
+  ).join('')
+
   bodyEl.innerHTML = data.map(u => {
     const isYou = u.email === currentUserEmail
+    const role  = u.role || 'view'
+    const sel = `<select class="role-select" data-uid="${escapeHtml(u.id)}" data-self="${isYou}">
+      ${['admin','teacher','view'].map(v =>
+        `<option value="${v}" ${role === v ? 'selected' : ''}>${escapeHtml(roleLabel(v, lang))}</option>`
+      ).join('')}
+    </select>`
     return `
       <tr>
         <td>
@@ -359,9 +378,46 @@ async function loadUsers() {
           </div>
           ${u.display_name ? `<div class="user-meta">${escapeHtml(u.display_name)}</div>` : ''}
         </td>
+        <td>${sel}</td>
         <td style="color:var(--muted);font-size:.82rem;white-space:nowrap">${fmtDate(u.created_at)}</td>
       </tr>`
   }).join('')
+
+  bodyEl.querySelectorAll('.role-select').forEach(s => {
+    s.addEventListener('change', () => changeRole(s.dataset.uid, s.value, s.dataset.self === 'true', s))
+  })
+}
+
+/* ─────────────────────────── Change role ─────────────────────────── */
+async function changeRole(uid, newRole, isSelf, selectEl) {
+  if (isSelf && newRole !== 'admin') {
+    const confirmMsg = getLang() === 'th'
+      ? 'คุณกำลังลด Role ตัวเอง จะไม่สามารถเข้าหน้า Settings ได้อีก ยืนยันหรือไม่?'
+      : 'You are demoting yourself. You will lose access to Settings. Confirm?'
+    if (!confirm(confirmMsg)) {
+      await loadUsers()
+      return
+    }
+  }
+  const prev = selectEl.dataset.prev || selectEl.value
+  selectEl.disabled = true
+
+  const { error } = await supabase
+    .from('profiles')
+    .update({ role: newRole })
+    .eq('id', uid)
+
+  selectEl.disabled = false
+  if (error) {
+    toast((getLang() === 'th' ? 'เปลี่ยน Role ไม่สำเร็จ: ' : 'Failed to update role: ') + error.message, 'err')
+    selectEl.value = prev
+  } else {
+    toast(getLang() === 'th' ? 'บันทึก Role สำเร็จ' : 'Role updated', 'ok')
+    if (isSelf) {
+      // Force re-fetch profile cache and redirect
+      setTimeout(() => window.location.replace('/index.html'), 1200)
+    }
+  }
 }
 
 /* ─────────────────────────── Create user ─────────────────────────── */
@@ -413,8 +469,9 @@ async function handleCreateUser() {
 
 /* ─────────────────────────── Init ─────────────────────────── */
 async function init() {
-  const session = await requireAuth()
-  if (!session) return
+  const result = await requirePage('settings')
+  if (!result) return
+  const { session } = result
 
   currentUserEmail = session.user.email
   document.getElementById('userEmail').textContent = currentUserEmail
