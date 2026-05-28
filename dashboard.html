@@ -337,6 +337,30 @@
     }
     .btn-write-note:hover { background: var(--primary); color: white; }
 
+    /* ── Leave today panel ── */
+    .leave-panel {
+      background: #fff7ed;
+      border: 1px solid #fdba74;
+      border-left: 4px solid #ef4444;
+      border-radius: 12px;
+      padding: 14px 18px;
+      margin-bottom: 6px;
+    }
+    .leave-panel-title {
+      font-size: .83rem; font-weight: 700; color: #c2410c;
+      margin-bottom: 10px; display: flex; align-items: center; gap: 6px;
+    }
+    .leave-panel-title a {
+      margin-left: auto; font-size: .75rem; font-weight: 600;
+      color: #c2410c; text-decoration: none; border-bottom: 1px solid #fdba74;
+    }
+    .leave-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+    .leave-chip {
+      background: white; border: 1px solid #fdba74; border-radius: 999px;
+      padding: 4px 12px; font-size: .78rem; color: #9a3412; font-weight: 600;
+    }
+    .badge-leave { background: #fff7ed; color: #c2410c; border-color: #fdba74; }
+
     @media (max-width: 760px) {
       nav { padding: 0 14px; }
       .nav-email,
@@ -391,6 +415,17 @@
     </div>
   </section>
 
+  <!-- Leave today panel (shown when there are leaves) -->
+  <section id="leavePanelSection" hidden>
+    <div class="leave-panel">
+      <div class="leave-panel-title">
+        📅 <span id="leavePanelTitle"></span>
+        <a href="/leave.html">→ ดูทั้งหมด</a>
+      </div>
+      <div class="leave-chips" id="leaveChips"></div>
+    </div>
+  </section>
+
   <section class="toolbar">
     <div>
       <h3 data-i18n="students_heading">รายชื่อนักเรียน</h3>
@@ -441,6 +476,7 @@ applyI18n() // run immediately — modules are deferred so DOM is ready
 let students = []
 let openLogs = []
 let todayNotes = []
+let todayLeaves = []
 let currentFilter = 'all'
 let currentSubjectFilter = 'all'
 let currentUserRole = 'view'
@@ -580,10 +616,15 @@ function todayStart() {
   return d.toISOString()
 }
 
+function todayDateStr() {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
+}
+
 async function loadDashboard() {
   document.getElementById('statusText').textContent = 'กำลังโหลดข้อมูล...'
 
-  let [{ data: studentData, error: studentErr }, { data: logData, error: logErr }, { data: notesData }] = await Promise.all([
+  let [{ data: studentData, error: studentErr }, { data: logData, error: logErr }, { data: notesData }, { data: leavesData }] = await Promise.all([
     supabase
       .from('students')
       .select(`
@@ -603,7 +644,11 @@ async function loadDashboard() {
     supabase
       .from('student_notes')
       .select('student_id')
-      .gte('created_at', todayStart())
+      .gte('created_at', todayStart()),
+    supabase
+      .from('student_leaves')
+      .select('student_id, reason, submitted_by')
+      .eq('leave_date', todayDateStr())
   ])
 
   if (isMissingGradeLevelError(studentErr)) {
@@ -632,6 +677,7 @@ async function loadDashboard() {
   students = studentData || []
   openLogs = logData || []
   todayNotes = notesData || []
+  todayLeaves = leavesData || []
   render()
 }
 
@@ -649,7 +695,23 @@ function render() {
   const openMap = logsByStudent()
   const noteCountMap = new Map()
   todayNotes.forEach(n => noteCountMap.set(n.student_id, (noteCountMap.get(n.student_id) || 0) + 1))
+  const leaveTodaySet = new Set(todayLeaves.map(l => l.student_id))
   const inClassCount = students.filter(student => openMap.has(student.id)).length
+
+  // Render leave today panel
+  const leaveSection = document.getElementById('leavePanelSection')
+  if (todayLeaves.length) {
+    leaveSection.hidden = false
+    document.getElementById('leavePanelTitle').textContent = `${t('leave_today_heading')} (${todayLeaves.length} คน)`
+    document.getElementById('leaveChips').innerHTML = todayLeaves.map(l => {
+      const s = students.find(st => st.id === l.student_id)
+      const name = s?.nickname || s?.name || '-'
+      const reason = l.reason ? ` · ${l.reason}` : ''
+      return `<span class="leave-chip">${escapeHtml(name)}${escapeHtml(reason)}</span>`
+    }).join('')
+  } else {
+    leaveSection.hidden = true
+  }
   const visibleStudents = students.filter(student => {
     const inClass = openMap.has(student.id)
     if (currentFilter === 'in' && !inClass) return false
@@ -685,11 +747,13 @@ function render() {
     const displayNick = student.nickname || ''
     const initial = (displayNick || displayName).charAt(0).toUpperCase()
     const subjects = normalizeStudentSubjects(student.student_subjects || [])
+    const hasLeave = leaveTodaySet.has(student.id)
     const subjectBadges = subjects.length
       ? subjects.map(row =>
           `<span class="badge badge-${cls(row.subjects.name)}">${escapeHtml(subjectLabel(row.subjects.name))}</span>`
         ).join('')
       : '<span class="badge badge-default">ยังไม่มีวิชา</span>'
+    const leaveBadge = hasLeave ? `<span class="badge badge-leave">${t('leave_badge')}</span>` : ''
     const gradeBadge = student.grade_level
       ? `<span class="badge badge-default">${escapeHtml(student.grade_level)}</span>`
       : ''
@@ -719,7 +783,7 @@ function render() {
           </div>
           <span class="status-pill ${inClass ? 'in-class' : 'available'}">${inClass ? t('status_in') : t('status_out')}</span>
         </div>
-        <div class="badge-row">${subjectBadges}${gradeBadge}</div>
+        <div class="badge-row">${subjectBadges}${gradeBadge}${leaveBadge}</div>
         <div class="session-box">${sessionHtml}</div>
         ${cardFooter}
       </article>`
@@ -794,6 +858,10 @@ function subscribeRealtime() {
       reloadTimer = setTimeout(loadDashboard, 300)
     })
     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'student_notes' }, () => {
+      clearTimeout(reloadTimer)
+      reloadTimer = setTimeout(loadDashboard, 300)
+    })
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'student_leaves' }, () => {
       clearTimeout(reloadTimer)
       reloadTimer = setTimeout(loadDashboard, 300)
     })

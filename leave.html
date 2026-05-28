@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KUMON — การลาหยุด</title>
+  <style>
+    :root {
+      --bg: #eaf4fb; --navy: #1a4a6e; --primary: #f97316;
+      --gold: #c9a227; --blue: #5ba4cf; --text: #1a202c;
+      --muted: #5a7a92; --border: #c5e3f2; --card: #ffffff;
+      --ok-bg: #f0fdf4; --ok-fg: #166534; --ok-bd: #86efac;
+      --err-bg: #fff7ed; --err-fg: #c2410c; --err-bd: #fdba74;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', Tahoma, sans-serif; background: var(--bg); min-height: 100vh; }
+
+    nav {
+      background: var(--navy); padding: 0 20px; height: 58px;
+      display: flex; align-items: center; justify-content: space-between;
+      position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 8px rgba(0,0,0,.2);
+    }
+    .nav-brand { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+    .nav-brand img { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; border: 2px solid var(--gold); }
+    .nav-brand span { font-weight: 700; font-size: 1rem; color: white; }
+    .nav-right { display: flex; align-items: center; gap: 10px; }
+    .nav-back { background: transparent; border: 1px solid #3a6a90; color: #a0c4dd; padding: 5px 12px; border-radius: 6px; cursor: pointer; font-size: .8rem; text-decoration: none; white-space: nowrap; }
+    .nav-back:hover { background: #3a6a90; color: white; }
+    .nav-email { font-size: .78rem; color: #a0c4dd; max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    .hero { background: linear-gradient(135deg, var(--navy) 0%, #2a6496 100%); color: white; padding: 28px 20px; text-align: center; }
+    .hero h2 { font-size: 1.4rem; font-weight: 700; margin-bottom: 5px; }
+    .hero p { color: #a0c4dd; font-size: .88rem; }
+
+    .container { max-width: 800px; margin: 0 auto; padding: 22px 16px 40px; display: flex; flex-direction: column; gap: 16px; }
+
+    /* ── Write card ── */
+    .write-card {
+      background: var(--card); border-radius: 14px; padding: 20px;
+      box-shadow: 0 2px 10px rgba(26,74,110,.08); border: 1px solid rgba(197,227,242,.6);
+    }
+    .card-title { font-size: .95rem; font-weight: 700; color: var(--navy); margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+    .form-group { display: flex; flex-direction: column; gap: 5px; }
+    .form-group label { font-size: .8rem; font-weight: 600; color: var(--navy); }
+    .form-group select, .form-group input {
+      padding: 9px 12px; border: 1.5px solid var(--border); border-radius: 9px;
+      font-size: .9rem; background: white; color: var(--text);
+    }
+    .form-group select:focus, .form-group input:focus { outline: none; border-color: var(--blue); }
+    textarea#leaveReason {
+      width: 100%; padding: 9px 12px; border: 1.5px solid var(--border); border-radius: 9px;
+      font-size: .9rem; font-family: inherit; background: white; resize: vertical; min-height: 72px;
+      color: var(--text); margin-bottom: 10px;
+    }
+    textarea#leaveReason:focus { outline: none; border-color: var(--blue); }
+
+    .form-actions { display: flex; gap: 10px; justify-content: flex-end; }
+    .btn { border: none; border-radius: 9px; padding: 9px 20px; font-size: .875rem; font-weight: 700; cursor: pointer; }
+    .btn-primary { background: linear-gradient(135deg, var(--primary), #fb923c); color: white; box-shadow: 0 4px 12px rgba(249,115,22,.28); }
+    .btn-primary:disabled { opacity: .5; cursor: not-allowed; }
+    .btn-danger { background: transparent; border: 1px solid #f87171; color: #b91c1c; border-radius: 7px; padding: 5px 11px; font-size: .78rem; font-weight: 700; cursor: pointer; }
+    .btn-danger:hover { background: #fee2e2; }
+
+    .alert { border-radius: 9px; padding: 10px 14px; font-size: .85rem; margin-bottom: 10px; }
+    .alert.err { background: var(--err-bg); border: 1px solid var(--err-bd); color: var(--err-fg); }
+    .alert.ok  { background: var(--ok-bg);  border: 1px solid var(--ok-bd);  color: var(--ok-fg);  }
+
+    /* ── Filter bar ── */
+    .filter-bar {
+      background: var(--card); border-radius: 12px; padding: 14px 18px;
+      box-shadow: 0 2px 8px rgba(26,74,110,.07); border: 1px solid rgba(197,227,242,.6);
+      display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    }
+    .filter-bar label { font-size: .8rem; font-weight: 700; color: var(--muted); white-space: nowrap; }
+    .filter-bar input[type="date"] {
+      padding: 7px 10px; border: 1.5px solid var(--border); border-radius: 8px;
+      font-size: .85rem; background: white; color: var(--text); cursor: pointer;
+    }
+    .filter-bar input[type="date"]:focus { outline: none; border-color: var(--blue); }
+    .leave-count-chip {
+      background: var(--err-bg); border: 1px solid var(--err-bd); border-radius: 999px;
+      padding: 4px 12px; font-size: .8rem; font-weight: 700; color: var(--err-fg);
+      margin-left: auto;
+    }
+
+    /* ── Section heading ── */
+    .section-heading { font-size: .8rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; }
+
+    /* ── Leave cards ── */
+    .leaves-list { display: flex; flex-direction: column; gap: 10px; }
+
+    .leave-card {
+      background: var(--card); border-radius: 12px; padding: 16px 18px;
+      box-shadow: 0 1px 6px rgba(26,74,110,.07); border: 1px solid rgba(197,227,242,.5);
+      border-left: 4px solid #f97316;
+    }
+    .leave-card.past { border-left-color: #cbd5e1; }
+
+    .leave-header { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+    .leave-avatar {
+      width: 40px; height: 40px; border-radius: 50%; flex-shrink: 0;
+      background: linear-gradient(135deg, var(--navy), var(--blue));
+      display: flex; align-items: center; justify-content: center;
+      color: white; font-weight: 700; font-size: .95rem;
+    }
+    .leave-avatar img { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; }
+    .leave-student-info { flex: 1; min-width: 0; }
+    .leave-student-name { font-size: .95rem; font-weight: 700; color: var(--navy); }
+    .leave-date-badge {
+      display: inline-block; margin-top: 3px;
+      background: var(--err-bg); border: 1px solid var(--err-bd); border-radius: 999px;
+      padding: 2px 9px; font-size: .73rem; font-weight: 700; color: var(--err-fg);
+    }
+    .leave-date-badge.past { background: #f1f5f9; border-color: #e2e8f0; color: var(--muted); }
+    .leave-reason { font-size: .88rem; color: var(--text); margin-bottom: 6px; line-height: 1.5; }
+    .leave-reason.no-reason { color: var(--muted); font-style: italic; }
+    .leave-meta { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+    .leave-by { font-size: .75rem; color: var(--muted); }
+
+    .empty-state { text-align: center; padding: 36px; color: var(--muted); font-size: .9rem; background: var(--card); border-radius: 12px; }
+    .empty-state a { color: var(--primary); text-decoration: none; }
+
+    #statusMsg { text-align: center; padding: 20px; color: var(--muted); font-size: .9rem; }
+
+    .toast {
+      position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px);
+      background: #1e293b; color: white; padding: 10px 20px; border-radius: 10px;
+      font-size: .88rem; font-weight: 600; transition: transform .25s; z-index: 999; white-space: nowrap;
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); }
+    .toast.ok  { background: #166534; }
+    .toast.err { background: #c2410c; }
+
+    @media (max-width: 600px) {
+      .form-row { grid-template-columns: 1fr; }
+      .nav-email { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="/index.html" class="nav-brand">
+    <img src="/LOGO.jpg" alt="KUMON">
+    <span>KUMON โพนพิสัย</span>
+  </a>
+  <div class="nav-right">
+    <span class="nav-email" id="userEmail"></span>
+    <a href="/index.html" class="nav-back" data-i18n="nav_home">← หน้าหลัก</a>
+  </div>
+</nav>
+
+<div class="hero">
+  <h2 data-i18n="leave_title">📅 การลาหยุด</h2>
+  <p data-i18n="leave_sub">แจ้งลาและตรวจสอบรายการลา</p>
+</div>
+
+<div class="container">
+
+  <!-- Write form -->
+  <div class="write-card" id="writeSection">
+    <div class="card-title"><span>📅</span><span data-i18n="leave_write_title">แจ้งลาใหม่</span></div>
+    <div class="alert err" id="leaveAlert" hidden></div>
+    <div class="form-row">
+      <div class="form-group">
+        <label data-i18n="notes_select_student">นักเรียน</label>
+        <select id="leaveStudent">
+          <option value="">— เลือกนักเรียน —</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label data-i18n="leave_date_label">วันที่ลา</label>
+        <input id="leaveDate" type="date">
+      </div>
+    </div>
+    <textarea id="leaveReason" data-i18n-ph="leave_reason_ph" placeholder="เหตุผล (ไม่บังคับ) เช่น ป่วย ธุระ..."></textarea>
+    <div class="form-actions">
+      <button class="btn btn-primary" id="leaveSubmit" data-i18n="leave_submit">ยืนยันการลา</button>
+    </div>
+  </div>
+
+  <!-- Date filter (admin/teacher) -->
+  <div class="filter-bar" id="filterBar" hidden>
+    <label data-i18n="leave_filter_date">ดูตามวันที่</label>
+    <input type="date" id="filterDate">
+    <span class="leave-count-chip" id="leaveCountChip" hidden></span>
+  </div>
+
+  <!-- List heading -->
+  <div class="section-heading" id="listHeading"></div>
+  <div id="statusMsg"></div>
+  <div class="leaves-list" id="leavesList"></div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="/js/config.js"></script>
+<script type="module">
+import { supabase }    from '/js/supabase.js'
+import { requirePage } from '/js/rbac.js'
+import { applyI18n, t, getLang } from '/js/i18n.js'
+import { loadWatches } from '/js/notifications.js'
+
+applyI18n()
+
+let currentRole = 'view'
+let currentUserId = ''
+let currentUserEmail = ''
+let allLeaves = []
+let filterDateVal = todayDateStr()
+let toastTimer
+
+// ── Helpers ──────────────────────────────────────────────────
+function todayDateStr() {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
+}
+
+function escapeHtml(v) {
+  return String(v ?? '').replace(/[&<>"']/g, c =>
+    ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#039;' }[c])
+  )
+}
+
+function fmtDate(v, lang = 'th') {
+  if (!v) return '-'
+  // v is YYYY-MM-DD string (DATE type) — parse as local date
+  const [y, m, d] = v.split('-').map(Number)
+  const date = new Date(y, m - 1, d)
+  return new Intl.DateTimeFormat(lang === 'th' ? 'th-TH' : 'en-GB', {
+    weekday: 'short', day: 'numeric', month: 'short', year: 'numeric'
+  }).format(date)
+}
+
+function isToday(dateStr) { return dateStr === todayDateStr() }
+function isFuture(dateStr) { return dateStr >= todayDateStr() }
+
+function toast(msg, type = 'ok') {
+  const el = document.getElementById('toast')
+  el.textContent = msg
+  el.className = `toast ${type} show`
+  clearTimeout(toastTimer)
+  toastTimer = setTimeout(() => el.classList.remove('show'), 3500)
+}
+
+function showAlert(msg) {
+  const el = document.getElementById('leaveAlert')
+  if (!msg) { el.hidden = true; return }
+  el.textContent = msg
+  el.hidden = false
+}
+
+// ── Init ─────────────────────────────────────────────────────
+async function init() {
+  const result = await requirePage('leave')
+  if (!result) return
+  const { session, profile } = result
+  currentRole      = profile?.role || 'view'
+  currentUserId    = session.user.id
+  currentUserEmail = session.user.email
+  document.getElementById('userEmail').textContent = currentUserEmail
+
+  const isWriter = currentRole === 'admin' || currentRole === 'teacher'
+
+  if (isWriter) {
+    document.getElementById('filterBar').hidden = false
+    document.getElementById('listHeading').textContent = t('leave_all_list')
+    await loadAllStudents()
+    setupFilter()
+  } else {
+    document.getElementById('listHeading').textContent = t('leave_my_history')
+    await setupViewStudents()
+  }
+
+  setupForm()
+  await loadLeaves()
+  subscribeRealtime()
+}
+
+// ── Load students ─────────────────────────────────────────────
+async function loadAllStudents() {
+  const { data } = await supabase
+    .from('students').select('id, name, nickname').eq('is_active', true).order('name')
+  populateStudentDropdown(data || [])
+}
+
+async function setupViewStudents() {
+  const watchedIds = await loadWatches(currentUserId)
+  if (!watchedIds.length) {
+    document.getElementById('writeSection').innerHTML =
+      `<div class="empty-state">${t('leave_no_watch')} <a href="/notify.html">→ ${t('menu_notify')}</a></div>`
+    return
+  }
+  const { data } = await supabase
+    .from('students').select('id, name, nickname')
+    .in('id', watchedIds).eq('is_active', true).order('name')
+  populateStudentDropdown(data || [])
+}
+
+function populateStudentDropdown(students) {
+  const sel = document.getElementById('leaveStudent')
+  sel.innerHTML = `<option value="">${escapeHtml(t('leave_select_ph'))}</option>`
+  students.forEach(s => {
+    const label = s.nickname ? `${s.name} (${s.nickname})` : s.name
+    sel.appendChild(new Option(label, s.id))
+  })
+}
+
+// ── Date filter (admin/teacher) ───────────────────────────────
+function setupFilter() {
+  const input = document.getElementById('filterDate')
+  input.value = filterDateVal
+  input.addEventListener('change', () => {
+    filterDateVal = input.value
+    loadLeaves()
+  })
+}
+
+// ── Write form ────────────────────────────────────────────────
+function setupForm() {
+  const dateInput = document.getElementById('leaveDate')
+  const today = todayDateStr()
+  const maxDate = new Date(); maxDate.setDate(maxDate.getDate() + 30)
+  const maxStr = `${maxDate.getFullYear()}-${String(maxDate.getMonth()+1).padStart(2,'0')}-${String(maxDate.getDate()).padStart(2,'0')}`
+  dateInput.value = today
+  dateInput.max = maxStr
+
+  document.getElementById('leaveSubmit').addEventListener('click', submitLeave)
+}
+
+async function submitLeave() {
+  const studentId = document.getElementById('leaveStudent').value
+  const leaveDate = document.getElementById('leaveDate').value
+  const reason    = document.getElementById('leaveReason').value.trim()
+  showAlert(null)
+
+  if (!studentId) return showAlert(t('leave_err_select'))
+  if (!leaveDate) return showAlert(t('leave_err_date'))
+
+  // Check duplicate
+  const { data: existing } = await supabase
+    .from('student_leaves').select('id')
+    .eq('student_id', studentId).eq('leave_date', leaveDate)
+    .maybeSingle()
+  if (existing) return showAlert(t('leave_duplicate'))
+
+  const btn = document.getElementById('leaveSubmit')
+  btn.disabled = true
+  btn.textContent = '...'
+
+  const { error } = await supabase.from('student_leaves').insert({
+    student_id:      studentId,
+    leave_date:      leaveDate,
+    reason:          reason || null,
+    submitted_by:    currentUserEmail,
+    submitted_by_id: currentUserId,
+  })
+
+  btn.disabled = false
+  btn.textContent = t('leave_submit')
+
+  if (error) return showAlert(error.message)
+
+  document.getElementById('leaveStudent').value = ''
+  document.getElementById('leaveReason').value = ''
+  toast(t('leave_saved'), 'ok')
+  await loadLeaves()
+}
+
+// ── Load leaves ───────────────────────────────────────────────
+async function loadLeaves() {
+  document.getElementById('statusMsg').textContent = t('loading')
+  document.getElementById('leavesList').innerHTML = ''
+
+  const isWriter = currentRole === 'admin' || currentRole === 'teacher'
+  let query = supabase
+    .from('student_leaves')
+    .select(`id, student_id, leave_date, reason, submitted_by, submitted_by_id, created_at,
+             students(id, name, nickname, photo_url)`)
+
+  if (isWriter) {
+    query = query.eq('leave_date', filterDateVal).order('created_at', { ascending: true })
+  } else {
+    query = query.eq('submitted_by_id', currentUserId).order('leave_date', { ascending: false }).limit(50)
+  }
+
+  const { data, error } = await query
+  if (error) { document.getElementById('statusMsg').textContent = error.message; return }
+
+  allLeaves = data || []
+  document.getElementById('statusMsg').textContent = ''
+
+  if (isWriter) {
+    const chip = document.getElementById('leaveCountChip')
+    if (allLeaves.length) {
+      chip.textContent = `${allLeaves.length} คน`
+      chip.hidden = false
+    } else {
+      chip.hidden = true
+    }
+  }
+
+  renderLeaves()
+}
+
+// ── Render ────────────────────────────────────────────────────
+function renderLeaves() {
+  const list = document.getElementById('leavesList')
+  if (!allLeaves.length) {
+    list.innerHTML = `<div class="empty-state">${t('leave_empty')}</div>`
+    return
+  }
+
+  const isWriter = currentRole === 'admin' || currentRole === 'teacher'
+  const lang = getLang()
+
+  list.innerHTML = allLeaves.map(l => {
+    const student = l.students
+    const initial = ((student?.nickname || student?.name || '?')[0]).toUpperCase()
+    const avatarHtml = student?.photo_url
+      ? `<img src="${escapeHtml(student.photo_url)}" alt="">`
+      : escapeHtml(initial)
+    const name = escapeHtml(student?.name || '-')
+    const nick = student?.nickname ? ` (${escapeHtml(student.nickname)})` : ''
+    const past = !isFuture(l.leave_date)
+    const reasonHtml = l.reason
+      ? `<div class="leave-reason">${escapeHtml(l.reason)}</div>`
+      : `<div class="leave-reason no-reason">${t('leave_no_reason')}</div>`
+    const canDelete = isWriter || (l.submitted_by_id === currentUserId)
+    const deleteBtn = canDelete
+      ? `<button class="btn-danger" data-leave-id="${escapeHtml(l.id)}">${t('leave_delete_btn')}</button>`
+      : ''
+
+    return `
+      <div class="leave-card${past ? ' past' : ''}">
+        <div class="leave-header">
+          <div class="leave-avatar">${avatarHtml}</div>
+          <div class="leave-student-info">
+            <div class="leave-student-name">${name}${nick}</div>
+            <span class="leave-date-badge${past ? ' past' : ''}">${fmtDate(l.leave_date, lang)}</span>
+          </div>
+        </div>
+        ${reasonHtml}
+        <div class="leave-meta">
+          <span class="leave-by">โดย ${escapeHtml(l.submitted_by)}</span>
+          ${deleteBtn}
+        </div>
+      </div>`
+  }).join('')
+
+  list.querySelectorAll('[data-leave-id]').forEach(btn => {
+    btn.addEventListener('click', () => deleteLeave(btn.dataset.leaveId))
+  })
+}
+
+// ── Delete ────────────────────────────────────────────────────
+async function deleteLeave(id) {
+  const msg = getLang() === 'th' ? 'ยืนยันการยกเลิกการลาหยุด?' : 'Confirm cancel this leave?'
+  if (!confirm(msg)) return
+
+  const { error } = await supabase.from('student_leaves').delete().eq('id', id)
+  if (error) { toast(error.message, 'err'); return }
+  toast(t('leave_deleted'), 'ok')
+  await loadLeaves()
+}
+
+// ── Realtime ──────────────────────────────────────────────────
+function subscribeRealtime() {
+  supabase.channel('leaves-channel')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'student_leaves' }, () => loadLeaves())
+    .subscribe()
+}
+
+init()
+</script>
+<script src="/js/version.js"></script>
+</body>
+</html>
