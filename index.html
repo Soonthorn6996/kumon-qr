@@ -182,13 +182,13 @@
   </a>
   <div class="nav-right">
     <span class="nav-email" id="userEmail"></span>
-    <button type="button" class="nav-logout" id="logoutBtn">ออกจากระบบ</button>
+    <button type="button" class="nav-logout" id="logoutBtn" data-i18n="logout">ออกจากระบบ</button>
   </div>
 </nav>
 
 <div class="hero">
-  <h2>ยินดีต้อนรับสู่ ClassScan</h2>
-  <p>ระบบลงเวลาเรียน — เลือกเมนูที่ต้องการ</p>
+  <h2 data-i18n="hero_title">ยินดีต้อนรับสู่ ClassScan</h2>
+  <p data-i18n="hero_sub">ระบบลงเวลาเรียน — เลือกเมนูที่ต้องการ</p>
 </div>
 
 <div class="container">
@@ -196,36 +196,36 @@
     <a href="/scan.html" class="menu-card orange" id="cardScan">
       <span class="icon">📷</span>
       <div>
-        <h3>สแกน QR</h3>
-        <p>บันทึกเข้า-ออกห้องเรียน</p>
+        <h3 data-i18n="menu_scan">สแกน QR</h3>
+        <p data-i18n="menu_scan_desc">บันทึกเข้า-ออกห้องเรียน</p>
       </div>
     </a>
     <a href="/dashboard.html" class="menu-card blue" id="cardDashboard">
       <span class="icon">📊</span>
       <div>
-        <h3>Dashboard</h3>
-        <p>ดูสถานะนักเรียน Realtime</p>
+        <h3 data-i18n="menu_dashboard">Dashboard</h3>
+        <p data-i18n="menu_dashboard_desc">ดูสถานะนักเรียน Realtime</p>
       </div>
     </a>
     <a href="/admin.html" class="menu-card gold" id="cardAdmin">
       <span class="icon">👨‍🎓</span>
       <div>
-        <h3>จัดการนักเรียน</h3>
-        <p>เพิ่มนักเรียน + สร้าง QR Code</p>
+        <h3 data-i18n="menu_admin">จัดการนักเรียน</h3>
+        <p data-i18n="menu_admin_desc">เพิ่มนักเรียน + สร้าง QR Code</p>
       </div>
     </a>
     <a href="/settings.html" class="menu-card green" id="cardSettings">
       <span class="icon">⚙️</span>
       <div>
-        <h3>ตั้งค่าระบบ</h3>
-        <p>ภาษา + จัดการบัญชีผู้ใช้</p>
+        <h3 data-i18n="menu_settings">ตั้งค่าระบบ</h3>
+        <p data-i18n="menu_settings_desc">ภาษา + จัดการบัญชีผู้ใช้</p>
       </div>
     </a>
     <a href="/notify.html" class="menu-card" style="border-bottom-color:#8b5cf6" id="cardNotify">
       <span class="icon">🔔</span>
       <div>
-        <h3>การแจ้งเตือน</h3>
-        <p>เลือกนักเรียนที่ติดตาม</p>
+        <h3 data-i18n="menu_notify">การแจ้งเตือน</h3>
+        <p data-i18n="menu_notify_desc">เลือกนักเรียนที่ติดตาม</p>
       </div>
     </a>
   </div>
@@ -236,11 +236,13 @@
   import { logout } from '/js/auth.js'
   import { requirePage, roleLabel } from '/js/rbac.js'
   import { initBell } from '/js/bell.js'
+  import { applyI18n } from '/js/i18n.js'
 
   async function init() {
     const result = await requirePage('dashboard')
     if (!result) return
     const { session, profile } = result
+    applyI18n()
     initBell(session, profile)
 
     const role = profile?.role || 'view'

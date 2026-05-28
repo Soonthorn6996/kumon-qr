@@ -311,15 +311,15 @@
   </a>
   <div class="nav-right">
     <span class="nav-email" id="userEmail"></span>
-    <a href="/index.html" class="nav-link">← หน้าหลัก</a>
-    <button type="button" class="nav-logout" id="logoutBtn">ออก</button>
+    <a href="/index.html" class="nav-link" data-i18n="nav_home">← หน้าหลัก</a>
+    <button type="button" class="nav-logout" id="logoutBtn" data-i18n="nav_exit">ออก</button>
   </div>
 </nav>
 
 <div class="page-top">
   <div class="page-top-inner">
     <div>
-      <h2>Dashboard นักเรียน</h2>
+      <h2 data-i18n="dash_title">Dashboard นักเรียน</h2>
       <p id="statusText">กำลังโหลดข้อมูล...</p>
     </div>
   </div>
@@ -328,34 +328,34 @@
 <main class="container">
   <section class="summary-grid">
     <div class="summary-box">
-      <span>นักเรียนทั้งหมด</span>
+      <span data-i18n="stat_total">นักเรียนทั้งหมด</span>
       <strong id="totalStudents">0</strong>
     </div>
     <div class="summary-box">
-      <span>กำลังเรียน</span>
+      <span data-i18n="stat_in_class">กำลังเรียน</span>
       <strong id="activeStudents">0</strong>
     </div>
     <div class="summary-box">
-      <span>ว่าง/ยังไม่เข้า</span>
+      <span data-i18n="stat_avail">ว่าง/ยังไม่เข้า</span>
       <strong id="availableStudents">0</strong>
     </div>
     <div class="summary-box">
-      <span>รายการเปิดอยู่</span>
+      <span data-i18n="stat_sessions">รายการเปิดอยู่</span>
       <strong id="openSessions">0</strong>
     </div>
   </section>
 
   <section class="toolbar">
     <div>
-      <h3>รายชื่อนักเรียน</h3>
+      <h3 data-i18n="students_heading">รายชื่อนักเรียน</h3>
       <p id="listSubtext">แสดงเฉพาะนักเรียนที่ active ในระบบ</p>
     </div>
     <div class="filter-row">
-      <button type="button" class="filter-btn active" data-filter="all">ทั้งหมด</button>
-      <button type="button" class="filter-btn" data-filter="in">กำลังเรียน</button>
-      <button type="button" class="filter-btn" data-filter="out">ว่าง</button>
+      <button type="button" class="filter-btn active" data-filter="all" data-i18n="filter_all">ทั้งหมด</button>
+      <button type="button" class="filter-btn" data-filter="in" data-i18n="filter_in">กำลังเรียน</button>
+      <button type="button" class="filter-btn" data-filter="out" data-i18n="filter_out">ว่าง</button>
       <span class="filter-sep">|</span>
-      <button type="button" class="filter-btn subj-btn active" data-subject="all">ทุกวิชา</button>
+      <button type="button" class="filter-btn subj-btn active" data-subject="all" data-i18n="filter_all_subj">ทุกวิชา</button>
       <button type="button" class="filter-btn subj-btn math" data-subject="math">MATH</button>
       <button type="button" class="filter-btn subj-btn thai" data-subject="thai">THAI</button>
       <button type="button" class="filter-btn subj-btn eng" data-subject="eng">ENG</button>
@@ -375,6 +375,7 @@ import { logout } from '/js/auth.js'
 import { supabase } from '/js/supabase.js'
 import { requirePage, roleLabel } from '/js/rbac.js'
 import { initBell } from '/js/bell.js'
+import { applyI18n, t } from '/js/i18n.js'
 
 let students = []
 let openLogs = []
@@ -389,6 +390,7 @@ async function init() {
   if (!result) return
   const { session, profile } = result
 
+  applyI18n()
   initBell(session, profile)
   const roleTxt = profile?.role ? ` (${roleLabel(profile.role)})` : ''
   document.getElementById('userEmail').textContent = session.user.email + roleTxt
@@ -614,7 +616,7 @@ function render() {
             <div class="card-name">${escapeHtml(displayName)}</div>
             <div class="card-sub">${displayNick ? `ชื่อเล่น: ${escapeHtml(displayNick)}` : 'ไม่มีชื่อเล่น'}</div>
           </div>
-          <span class="status-pill ${inClass ? 'in-class' : 'available'}">${inClass ? 'กำลังเรียน' : 'ว่าง'}</span>
+          <span class="status-pill ${inClass ? 'in-class' : 'available'}">${inClass ? t('status_in') : t('status_out')}</span>
         </div>
         <div class="badge-row">${subjectBadges}${gradeBadge}</div>
         <div class="session-box">${sessionHtml}</div>

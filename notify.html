@@ -135,8 +135,8 @@
 </nav>
 
 <div class="hero">
-  <h2>🔔 การแจ้งเตือน</h2>
-  <p>ตั้งค่านักเรียนที่แจ้งเตือนสำหรับแต่ละบัญชีผู้ใช้</p>
+  <h2 data-i18n="notify_title">🔔 การแจ้งเตือน</h2>
+  <p data-i18n="notify_sub">ตั้งค่านักเรียนที่แจ้งเตือนสำหรับแต่ละบัญชีผู้ใช้</p>
 </div>
 
 <div class="container">
@@ -144,15 +144,15 @@
   <!-- Permission -->
   <div class="perm-card">
     <div>
-      <strong id="permTitle">การแจ้งเตือนของ Chrome</strong>
-      <p id="permDesc">กดเปิดเพื่อรับแจ้งเตือนเมื่อนักเรียนสแกน QR</p>
+      <strong id="permTitle" data-i18n="notify_perm_title">การแจ้งเตือนของ Chrome</strong>
+      <p id="permDesc" data-i18n="notify_perm_desc">กดเปิดเพื่อรับแจ้งเตือนเมื่อนักเรียนสแกน QR</p>
     </div>
-    <button class="btn-enable" id="permBtn">เปิดการแจ้งเตือน</button>
+    <button class="btn-enable" id="permBtn" data-i18n="notify_perm_btn">เปิดการแจ้งเตือน</button>
   </div>
 
   <!-- User selector -->
   <div class="user-card">
-    <label>ตั้งค่าสำหรับบัญชีผู้ใช้</label>
+    <label data-i18n="notify_user_label">ตั้งค่าสำหรับบัญชีผู้ใช้</label>
     <div class="user-select-row">
       <select id="userSelect"></select>
       <span class="role-badge" id="selectedRoleBadge"></span>
@@ -160,7 +160,7 @@
   </div>
 
   <!-- Student list -->
-  <div class="section-title">นักเรียนที่ติดตาม</div>
+  <div class="section-title" data-i18n="notify_students_title">นักเรียนที่ติดตาม</div>
   <div id="statusMsg">กำลังโหลด...</div>
   <div class="student-list" id="studentList"></div>
 
@@ -170,6 +170,7 @@
 <script type="module">
   import { requirePage } from '/js/rbac.js'
   import { supabase }    from '/js/supabase.js'
+  import { applyI18n, t } from '/js/i18n.js'
   import {
     requestPermission, getPermission, registerSW
   } from '/js/notifications.js'
@@ -190,6 +191,7 @@
     currentUserId  = session.user.id
     selectedUserId = session.user.id
 
+    applyI18n()
     await registerSW()
     updatePermUI()
     document.getElementById('permBtn').addEventListener('click', onPermClick)
@@ -205,13 +207,13 @@
     const btn  = document.getElementById('permBtn')
     const desc = document.getElementById('permDesc')
     if (p === 'granted') {
-      btn.textContent = 'เปิดอยู่แล้ว ✓'; btn.disabled = true
-      desc.textContent = 'รับแจ้งเตือนเมื่อนักเรียนสแกน QR'
+      btn.textContent = t('notify_perm_on'); btn.disabled = true
+      desc.textContent = t('notify_perm_on_desc')
     } else if (p === 'denied') {
-      btn.textContent = 'ถูกบล็อก'; btn.disabled = true
-      desc.textContent = 'กรุณาเปิดสิทธิ์ใน Chrome Settings แล้วรีโหลด'
+      btn.textContent = t('notify_perm_blocked'); btn.disabled = true
+      desc.textContent = t('notify_perm_blocked_desc')
     } else if (p === 'unsupported') {
-      btn.textContent = 'ไม่รองรับ'; btn.disabled = true
+      btn.textContent = t('notify_perm_unsupported'); btn.disabled = true
     }
   }
 
@@ -233,7 +235,7 @@
       const opt = document.createElement('option')
       opt.value = u.id
       opt.dataset.role = u.role || 'view'
-      opt.textContent = u.email + (u.id === currentUserId ? ' (ฉัน)' : '')
+      opt.textContent = u.email + (u.id === currentUserId ? ` ${t('notify_me')}` : '')
       if (u.id === currentUserId) opt.selected = true
       sel.appendChild(opt)
     }
@@ -322,7 +324,7 @@
           <div class="student-nick">${s.nickname || ''}</div>
         </div>
         <div class="toggle-wrap">
-          <span class="toggle-label">${isWatched ? 'ติดตาม' : 'ไม่ติดตาม'}</span>
+          <span class="toggle-label">${isWatched ? t('toggle_on') : t('toggle_off')}</span>
           <label class="toggle">
             <input type="checkbox" data-id="${s.id}" ${isWatched ? 'checked' : ''}>
             <span class="slider"></span>
@@ -338,7 +340,7 @@
         const watch     = e.target.checked
         e.target.disabled = true
         const label = e.target.closest('.toggle-wrap').querySelector('.toggle-label')
-        label.textContent = watch ? 'ติดตาม' : 'ไม่ติดตาม'
+        label.textContent = watch ? t('toggle_on') : t('toggle_off')
         await setWatch(studentId, watch)
         e.target.disabled = false
       })

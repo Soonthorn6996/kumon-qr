@@ -121,8 +121,8 @@
   </a>
   <div class="nav-right">
     <span class="nav-email" id="userEmail"></span>
-    <a href="/index.html" class="nav-link" id="navHome">← หน้าหลัก</a>
-    <button type="button" class="nav-logout" id="logoutBtn">ออก</button>
+    <a href="/index.html" class="nav-link" id="navHome" data-i18n="nav_home">← หน้าหลัก</a>
+    <button type="button" class="nav-logout" id="logoutBtn" data-i18n="nav_exit">ออก</button>
   </div>
 </nav>
 
@@ -214,79 +214,32 @@ import { logout } from '/js/auth.js'
 import { initBell } from '/js/bell.js'
 import { supabase } from '/js/supabase.js'
 import { requirePage, roleLabel, roleBadge } from '/js/rbac.js'
+import { getLang, setLang, t, applyI18n } from '/js/i18n.js'
 
 /* ─────────────────────────── i18n ─────────────────────────── */
-const T = {
-  th: {
-    navHome: '← หน้าหลัก', navLogout: 'ออก',
-    ttlPage: 'ตั้งค่าระบบ', ttlSub: 'ภาษา & จัดการบัญชีผู้ใช้',
-    ttlLang: 'ภาษา / Language', ttlLangDesc: 'เลือกภาษาที่ต้องการแสดงผล',
-    ttlUsers: 'บัญชีผู้ใช้', ttlUsersDesc: 'รายชื่อผู้ใช้งานทั้งหมดในระบบ',
-    toggleCreate: '+ สร้างผู้ใช้ใหม่',
-    lblEmail: 'อีเมล', lblPwd: 'รหัสผ่าน', lblConfirm: 'ยืนยันรหัสผ่าน',
-    phEmail: 'staff@example.com', phPwd: 'อย่างน้อย 6 ตัวอักษร', phConfirm: 'พิมพ์รหัสผ่านอีกครั้ง',
-    formNote: '⚠️ หากปิด Email Confirmation ใน Supabase ระบบจะ Sign Out อัตโนมัติหลังสร้างผู้ใช้ กรุณาเปิด Email Confirmation ไว้',
-    submitCreate: 'สร้างบัญชี', cancelCreate: 'ยกเลิก',
-    colEmail: 'อีเมล', colRole: 'สิทธิ์', colCreated: 'วันที่สร้าง',
-    loading: 'กำลังโหลดรายชื่อผู้ใช้...', empty: 'ยังไม่มีบัญชีผู้ใช้ในระบบ',
-    creating: 'กำลังสร้าง...',
-    errEmail: 'กรุณากรอกอีเมล',
-    errPwdLen: 'รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร',
-    errPwdMatch: 'รหัสผ่านไม่ตรงกัน',
-    successCreate: (email) => `สร้างบัญชี ${email} สำเร็จ กรุณาตรวจอีเมลเพื่อยืนยันบัญชี`,
-    noticeRelogin: (email) => `สร้างบัญชี ${email} สำเร็จแล้ว กรุณาเข้าสู่ระบบอีกครั้ง`,
-    migrationNote: 'ยังไม่ได้รัน Migration 005 กรุณาไปที่ Supabase Dashboard → SQL Editor แล้วรัน: supabase/migrations/005_add_profiles.sql',
-    youBadge: 'คุณ',
-  },
-  en: {
-    navHome: '← Home', navLogout: 'Logout',
-    ttlPage: 'System Settings', ttlSub: 'Language & User Management',
-    ttlLang: 'Language', ttlLangDesc: 'Select display language',
-    ttlUsers: 'User Accounts', ttlUsersDesc: 'All system user accounts',
-    toggleCreate: '+ Create New User',
-    lblEmail: 'Email', lblPwd: 'Password', lblConfirm: 'Confirm Password',
-    phEmail: 'staff@example.com', phPwd: 'At least 6 characters', phConfirm: 'Re-enter password',
-    formNote: '⚠️ If Email Confirmation is disabled in Supabase, the system will auto sign-out after creating a user. Please enable Email Confirmation.',
-    submitCreate: 'Create Account', cancelCreate: 'Cancel',
-    colEmail: 'Email', colRole: 'Role', colCreated: 'Created At',
-    loading: 'Loading users...', empty: 'No user accounts found',
-    creating: 'Creating...',
-    errEmail: 'Please enter email',
-    errPwdLen: 'Password must be at least 6 characters',
-    errPwdMatch: 'Passwords do not match',
-    successCreate: (email) => `Account ${email} created. Please check email for confirmation.`,
-    noticeRelogin: (email) => `Account ${email} created. Please log in again.`,
-    migrationNote: 'Migration 005 not yet applied. Go to Supabase Dashboard → SQL Editor and run: supabase/migrations/005_add_profiles.sql',
-    youBadge: 'You',
-  }
-}
-
-function getLang() { return localStorage.getItem('classscan_lang') || 'th' }
-function setLang(lang) { localStorage.setItem('classscan_lang', lang); document.documentElement.lang = lang }
-function t(key, ...args) {
-  const val = T[getLang()]?.[key] ?? T.th[key] ?? key
-  return typeof val === 'function' ? val(...args) : val
-}
-
 function applyLang() {
-  const l = getLang()
-  // Text nodes
-  const ids = ['navHome','navLogout','ttlPage','ttlSub','ttlLang','ttlLangDesc',
-                'ttlUsers','ttlUsersDesc','toggleCreateBtn','lblEmail','lblPwd',
-                'lblConfirm','formNote','submitCreateBtn','cancelCreateBtn',
-                'colEmail','colRole','colCreated']
-  const keyMap = { toggleCreateBtn: 'toggleCreate', submitCreateBtn: 'submitCreate', cancelCreateBtn: 'cancelCreate' }
-  ids.forEach(id => {
+  applyI18n()
+  // Settings-specific: element IDs that need direct mapping
+  const idKeyMap = {
+    ttlPage: 'settings_title', ttlSub: 'settings_sub',
+    ttlLang: 'ttlLang', ttlLangDesc: 'ttlLangDesc',
+    ttlUsers: 'ttlUsers', ttlUsersDesc: 'ttlUsersDesc',
+    toggleCreateBtn: 'toggleCreate',
+    lblEmail: 'lblEmail', lblPwd: 'lblPwd', lblConfirm: 'lblConfirm',
+    formNote: 'formNote',
+    submitCreateBtn: 'submitCreate', cancelCreateBtn: 'cancelCreate',
+    colEmail: 'colEmail', colRole: 'colRole', colCreated: 'colCreated',
+  }
+  Object.entries(idKeyMap).forEach(([id, key]) => {
     const el = document.getElementById(id)
-    if (el) el.textContent = t(keyMap[id] || id)
+    if (el) el.textContent = t(key)
   })
   // Placeholders
-  document.getElementById('newEmail').placeholder      = t('phEmail')
-  document.getElementById('newPassword').placeholder   = t('phPwd')
+  document.getElementById('newEmail').placeholder        = t('phEmail')
+  document.getElementById('newPassword').placeholder     = t('phPwd')
   document.getElementById('confirmPassword').placeholder = t('phConfirm')
-  // Logout button
-  document.getElementById('logoutBtn').textContent = t('navLogout')
   // Lang buttons active state
+  const l = getLang()
   document.getElementById('langTh').classList.toggle('active', l === 'th')
   document.getElementById('langEn').classList.toggle('active', l === 'en')
 }
@@ -328,7 +281,7 @@ async function loadUsers() {
   const tableEl = document.getElementById('usersTable')
   const bodyEl  = document.getElementById('usersBody')
 
-  stateEl.textContent = t('loading')
+  stateEl.textContent = t('users_loading')
   stateEl.style.display = 'block'
   tableEl.style.display = 'none'
 
@@ -351,7 +304,7 @@ async function loadUsers() {
   }
 
   if (!data?.length) {
-    stateEl.textContent = t('empty')
+    stateEl.textContent = t('users_empty')
     return
   }
 
@@ -475,6 +428,7 @@ async function init() {
   const { session, profile } = result
 
   currentUserEmail = session.user.email
+  applyLang()
   initBell(session, profile)
   document.getElementById('userEmail').textContent = currentUserEmail
   document.getElementById('logoutBtn').addEventListener('click', logout)

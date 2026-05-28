@@ -410,15 +410,15 @@
   </a>
   <div class="nav-right">
     <span class="nav-email" id="userEmail"></span>
-    <a href="/index.html" class="nav-link">← หน้าหลัก</a>
-    <button type="button" class="nav-logout" id="logoutBtn">ออก</button>
+    <a href="/index.html" class="nav-link" data-i18n="nav_home">← หน้าหลัก</a>
+    <button type="button" class="nav-logout" id="logoutBtn" data-i18n="nav_exit">ออก</button>
   </div>
 </nav>
 
 <div class="page-top">
   <div class="page-top-inner">
     <div>
-      <h2>สแกน QR เข้า-ออกห้องเรียน</h2>
+      <h2 data-i18n="scan_title">สแกน QR เข้า-ออกห้องเรียน</h2>
       <p id="scanStatus">พร้อมสแกน QR รายวิชา</p>
     </div>
   </div>
@@ -428,20 +428,20 @@
   <section class="panel">
     <div class="panel-head">
       <div>
-        <h3>กล้องสแกน</h3>
-        <p>ใช้ QR ที่สร้างจากหน้า “จัดการนักเรียน”</p>
+        <h3 data-i18n=”scan_camera_h”>กล้องสแกน</h3>
+        <p data-i18n=”scan_camera_p”>ใช้ QR ที่สร้างจากหน้า “จัดการนักเรียน”</p>
       </div>
     </div>
     <div class="scanner-body">
       <div class="camera-row">
         <select id="cameraSelect" aria-label="เลือกกล้อง"></select>
-        <button type="button" class="btn btn-primary" id="startBtn">เริ่มสแกน</button>
-        <button type="button" class="btn btn-light" id="stopBtn" disabled>หยุด</button>
+        <button type="button" class="btn btn-primary" id="startBtn" data-i18n="btn_start">เริ่มสแกน</button>
+        <button type="button" class="btn btn-light" id="stopBtn" disabled data-i18n="btn_stop">หยุด</button>
       </div>
       <div id="reader"></div>
       <div class="manual-box">
-        <input id="manualCode" type="text" placeholder="ทดสอบด้วยรหัส QR เช่น qr_code:subject_id">
-        <button type="button" class="btn btn-dark" id="manualBtn">บันทึก</button>
+        <input id="manualCode" type="text" data-i18n-ph="manual_ph" placeholder="ทดสอบด้วยรหัส QR เช่น qr_code:subject_id">
+        <button type="button" class="btn btn-dark" id="manualBtn" data-i18n="btn_manual">บันทึก</button>
       </div>
     </div>
   </section>
@@ -461,8 +461,8 @@
   <section class="panel">
     <div class="panel-head">
       <div>
-        <h3>รายการล่าสุด</h3>
-        <p>ประวัติการเข้า-ออกล่าสุด</p>
+        <h3 data-i18n="history_h">รายการล่าสุด</h3>
+        <p data-i18n="history_p">ประวัติการเข้า-ออกล่าสุด</p>
       </div>
     </div>
     <div class="history-list" id="historyList">
@@ -490,6 +490,7 @@ import { logout } from '/js/auth.js'
 import { supabase } from '/js/supabase.js'
 import { requirePage } from '/js/rbac.js'
 import { initBell } from '/js/bell.js'
+import { applyI18n } from '/js/i18n.js'
 
 const statusEl = document.getElementById('scanStatus')
 const resultEl = document.getElementById('resultBox')
@@ -516,6 +517,7 @@ async function init() {
   const { session, profile } = result
 
   currentUserEmail = session.user.email
+  applyI18n()
   initBell(session, profile)
   document.getElementById('userEmail').textContent = currentUserEmail
   document.getElementById('logoutBtn').addEventListener('click', logout)

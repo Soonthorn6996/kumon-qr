@@ -615,8 +615,8 @@
   </a>
   <div class="nav-right">
     <span class="nav-email" id="userEmail"></span>
-    <a href="/index.html" class="nav-link">← หน้าหลัก</a>
-    <button type="button" class="nav-logout" id="logoutBtn">ออก</button>
+    <a href="/index.html" class="nav-link" data-i18n="nav_home">← หน้าหลัก</a>
+    <button type="button" class="nav-logout" id="logoutBtn" data-i18n="nav_exit">ออก</button>
   </div>
 </nav>
 
@@ -624,12 +624,12 @@
 <div class="page-top">
   <div class="page-top-inner">
     <div>
-      <h2>จัดการนักเรียน</h2>
+      <h2 data-i18n="admin_title">จัดการนักเรียน</h2>
       <p id="studentCount">กำลังโหลด...</p>
     </div>
     <div class="header-actions">
-      <button type="button" class="btn-secondary" id="qrAllBtn">📱 สร้าง QR ทั้งหมด</button>
-      <button type="button" class="btn-add" id="addBtn">+ เพิ่มนักเรียน</button>
+      <button type="button" class="btn-secondary" id="qrAllBtn" data-i18n="btn_qr_all">📱 สร้าง QR ทั้งหมด</button>
+      <button type="button" class="btn-add" id="addBtn" data-i18n="btn_add">+ เพิ่มนักเรียน</button>
     </div>
   </div>
 </div>
@@ -638,14 +638,14 @@
 <section class="list-tools" aria-label="ค้นหารายชื่อนักเรียน">
   <div class="search-box">
     <span class="search-icon">🔎</span>
-    <input type="search" id="studentSearch" placeholder="ค้นหาชื่อนักเรียน ชื่อเล่น ชั้น หรือวิชา" autocomplete="off">
+    <input type="search" id="studentSearch" data-i18n-ph="search_ph" placeholder="ค้นหาชื่อนักเรียน ชื่อเล่น ชั้น หรือวิชา" autocomplete="off">
     <button type="button" class="clear-search" id="clearSearch" title="ล้างคำค้น">✕</button>
   </div>
   <div class="result-count" id="resultCount"></div>
 </section>
 
 <section class="subject-filter" aria-label="กรองตามวิชา">
-  <button type="button" class="filter-btn active" data-subject="all">ทุกวิชา</button>
+  <button type="button" class="filter-btn active" data-subject="all" data-i18n="filter_all_subj">ทุกวิชา</button>
   <button type="button" class="filter-btn math" data-subject="math">MATH</button>
   <button type="button" class="filter-btn thai" data-subject="thai">THAI</button>
   <button type="button" class="filter-btn eng" data-subject="eng">ENG</button>
@@ -726,8 +726,8 @@
         <p id="qrSub">สร้างจากรายชื่อที่ active อยู่ในฐานข้อมูล</p>
       </div>
       <div class="qr-actions">
-        <button type="button" class="btn-print" id="printQR">พิมพ์ QR</button>
-        <button type="button" class="btn-hide" id="hideQR">ซ่อน</button>
+        <button type="button" class="btn-print" id="printQR" data-i18n="btn_print_qr">พิมพ์ QR</button>
+        <button type="button" class="btn-hide" id="hideQR" data-i18n="btn_hide_qr">ซ่อน</button>
       </div>
     </div>
     <div class="qr-grid" id="qrGrid"></div>
@@ -748,6 +748,7 @@ import { logout } from '/js/auth.js'
 import { supabase } from '/js/supabase.js'
 import { requirePage } from '/js/rbac.js'
 import { initBell } from '/js/bell.js'
+import { applyI18n } from '/js/i18n.js'
 
 let students  = []
 let editingId = null   // null = add mode, uuid = edit mode
@@ -763,6 +764,7 @@ async function init() {
   if (!result) return
   const { session, profile } = result
 
+  applyI18n()
   initBell(session, profile)
   document.getElementById('userEmail').textContent = session.user.email
   document.getElementById('logoutBtn').addEventListener('click', logout)
