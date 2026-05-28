@@ -196,6 +196,7 @@
             <th id="colEmail">อีเมล</th>
             <th id="colRole">สิทธิ์</th>
             <th id="colCreated">วันที่สร้าง</th>
+            <th id="colLastLogin">เข้าสู่ระบบล่าสุด</th>
           </tr>
         </thead>
         <tbody id="usersBody"></tbody>
@@ -230,7 +231,7 @@ function applyLang() {
     lblEmail: 'lblEmail', lblPwd: 'lblPwd', lblConfirm: 'lblConfirm',
     formNote: 'formNote',
     submitCreateBtn: 'submitCreate', cancelCreateBtn: 'cancelCreate',
-    colEmail: 'colEmail', colRole: 'colRole', colCreated: 'colCreated',
+    colEmail: 'colEmail', colRole: 'colRole', colCreated: 'colCreated', colLastLogin: 'colLastLogin',
   }
   Object.entries(idKeyMap).forEach(([id, key]) => {
     const el = document.getElementById(id)
@@ -287,10 +288,16 @@ async function loadUsers() {
   stateEl.style.display = 'block'
   tableEl.style.display = 'none'
 
-  const { data, error } = await supabase
-    .from('profiles')
-    .select('id, email, display_name, role, created_at')
-    .order('created_at', { ascending: true })
+  // Use RPC to join auth.users.last_sign_in_at; fall back to direct query if migration not yet run
+  let { data, error } = await supabase.rpc('get_users_with_last_login')
+  if (error && /function.*does not exist/i.test(error.message || '')) {
+    const fb = await supabase
+      .from('profiles')
+      .select('id, email, display_name, role, created_at')
+      .order('created_at', { ascending: true })
+    data = fb.data
+    error = fb.error
+  }
 
   if (error) {
     if (/relation.*does not exist|profiles.*not found/i.test(error.message || '')) {
@@ -336,6 +343,9 @@ async function loadUsers() {
         </td>
         <td>${sel}</td>
         <td style="color:var(--muted);font-size:.82rem;white-space:nowrap">${fmtDate(u.created_at)}</td>
+        <td style="font-size:.82rem;white-space:nowrap;${u.last_login_at ? 'color:var(--navy);font-weight:600' : 'color:var(--muted)'}">
+          ${u.last_login_at ? fmtDate(u.last_login_at) : escapeHtml(t('never_login'))}
+        </td>
       </tr>`
   }).join('')
 
