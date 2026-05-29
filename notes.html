@@ -100,6 +100,11 @@
     .note-session { font-size: .76rem; color: var(--muted); margin-top: 2px; }
     .note-time { font-size: .76rem; color: var(--muted); text-align: right; white-space: nowrap; }
     .note-body { font-size: .9rem; color: var(--text); line-height: 1.55; white-space: pre-wrap; word-break: break-word; }
+    .note-scan-photo {
+      width: 100%; max-height: 280px; object-fit: cover;
+      border-radius: 10px; margin-top: 10px;
+      border: 1px solid var(--border); cursor: pointer;
+    }
     .note-by { font-size: .76rem; color: var(--muted); margin-top: 8px; }
 
     .empty-state { text-align: center; padding: 36px; color: var(--muted); font-size: .9rem; background: var(--card); border-radius: 12px; }
@@ -315,7 +320,7 @@ async function loadNotes() {
   let query = supabase
     .from('student_notes')
     .select(`
-      id, student_id, body, created_by, created_at, log_id,
+      id, student_id, body, created_by, created_at, log_id, photo_url,
       students(id, name, nickname, photo_url),
       attendance_logs(check_in_at, subjects(name))
     `)
@@ -382,6 +387,7 @@ function renderNotes() {
           <div class="note-time">${fmtTime(n.created_at)}</div>
         </div>
         <div class="note-body">${escapeHtml(n.body)}</div>
+        ${n.photo_url ? `<img class="note-scan-photo" src="${escapeHtml(n.photo_url)}" alt="รูปถ่ายนักเรียน" loading="lazy" onclick="window.open(this.src,'_blank')">` : ''}
         <div class="note-by">${t('notes_by')} ${escapeHtml(n.created_by)}</div>
       </div>`
   }).join('')

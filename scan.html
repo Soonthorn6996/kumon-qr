@@ -382,6 +382,44 @@
     .toast.ok { background: #15803d; }
     .toast.err { background: #b91c1c; }
 
+    /* ── Photo section ── */
+    .photo-section {
+      border-top: 1px solid var(--border);
+    }
+
+    .photo-body {
+      padding: 16px 20px;
+    }
+
+    .photo-prompt {
+      color: var(--navy);
+      font-weight: 600;
+      font-size: .9rem;
+      margin-bottom: 12px;
+    }
+
+    .photo-btns {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .photo-img {
+      width: 100%;
+      max-height: 240px;
+      object-fit: cover;
+      border-radius: 10px;
+      margin-bottom: 10px;
+      border: 1px solid var(--border);
+    }
+
+    .photo-caption {
+      font-size: .78rem;
+      color: var(--muted);
+      margin-bottom: 12px;
+      line-height: 1.5;
+    }
+
     @media (max-width: 820px) {
       .container { grid-template-columns: 1fr; }
       #reader { min-height: 300px; }
@@ -456,6 +494,25 @@
     <div class="result empty" id="resultBox">
       ยังไม่มีรายการสแกน
     </div>
+    <div id="photoSection" class="photo-section" style="display:none">
+      <div id="photoTake" class="photo-body">
+        <p class="photo-prompt">📸 ถ่ายรูปส่งให้ผู้ปกครองไหม?</p>
+        <input type="file" id="photoInput" accept="image/*" capture="environment" style="display:none">
+        <div class="photo-btns">
+          <button type="button" class="btn btn-primary" id="photoCaptureBtn">📷 ถ่ายรูป</button>
+          <button type="button" class="btn btn-light" id="photoSkipBtn">ข้าม</button>
+        </div>
+      </div>
+      <div id="photoPreview" class="photo-body" style="display:none">
+        <img id="photoPreviewImg" class="photo-img" src="" alt="รูปถ่าย">
+        <p class="photo-caption" id="photoCaption"></p>
+        <div class="photo-btns">
+          <button type="button" class="btn btn-primary" id="photoSendBtn">✅ ส่งให้ผู้ปกครอง</button>
+          <button type="button" class="btn btn-light" id="photoRetakeBtn">📸 ถ่ายใหม่</button>
+          <button type="button" class="btn btn-light" id="photoSkipBtn2">ข้าม</button>
+        </div>
+      </div>
+    </div>
   </aside>
 
   <section class="panel">
@@ -512,6 +569,8 @@ let toastTimer
 let supportsGradeLevel = true
 let cameraChangeBound = false
 let currentUserEmail = ''
+let lastScanResult = null
+let selectedPhotoFile = null
 
 async function init() {
   const result = await requirePage('scan')
@@ -531,6 +590,7 @@ async function init() {
   })
 
   setupCameraOptions()
+  setupPhotoSection()
   await loadHistory()
 }
 
@@ -550,6 +610,92 @@ function fmtTime(value) {
     day: '2-digit',
     month: 'short'
   }).format(new Date(value))
+}
+
+function fmtTimeShort(isoStr) {
+  if (!isoStr) return ''
+  return new Intl.DateTimeFormat('th-TH', { hour: '2-digit', minute: '2-digit' }).format(new Date(isoStr))
+}
+
+function autoNoteText({ action, student, subject, log }) {
+  const subj = subjectLabel(subject.name)
+  if (action === 'in') {
+    return `📷 ${student.name} เข้าเรียน ${subj} เวลา ${fmtTimeShort(log.check_in_at)} น.`
+  }
+  const dur = log.duration_minutes ? ` · เรียน ${log.duration_minutes} นาที` : ''
+  return `📷 ${student.name} เลิกเรียน ${subj} เวลา ${fmtTimeShort(log.check_out_at)} น.${dur}`
+}
+
+function showPhotoSection(scanResult) {
+  lastScanResult = scanResult
+  selectedPhotoFile = null
+  document.getElementById('photoTake').style.display = ''
+  document.getElementById('photoPreview').style.display = 'none'
+  document.getElementById('photoPreviewImg').src = ''
+  document.getElementById('photoSection').style.display = ''
+}
+
+function hidePhotoSection() {
+  document.getElementById('photoSection').style.display = 'none'
+  selectedPhotoFile = null
+}
+
+function setupPhotoSection() {
+  const photoInput = document.getElementById('photoInput')
+  document.getElementById('photoCaptureBtn').addEventListener('click', () => photoInput.click())
+  document.getElementById('photoSkipBtn').addEventListener('click', hidePhotoSection)
+  document.getElementById('photoSkipBtn2').addEventListener('click', hidePhotoSection)
+  document.getElementById('photoRetakeBtn').addEventListener('click', () => photoInput.click())
+  document.getElementById('photoSendBtn').addEventListener('click', sendPhotoToParents)
+
+  photoInput.addEventListener('change', () => {
+    const file = photoInput.files[0]
+    if (!file) return
+    selectedPhotoFile = file
+    document.getElementById('photoPreviewImg').src = URL.createObjectURL(file)
+    document.getElementById('photoCaption').textContent = lastScanResult ? autoNoteText(lastScanResult) : ''
+    document.getElementById('photoTake').style.display = 'none'
+    document.getElementById('photoPreview').style.display = ''
+    photoInput.value = ''
+  })
+}
+
+async function sendPhotoToParents() {
+  if (!selectedPhotoFile || !lastScanResult) return
+  const sendBtn = document.getElementById('photoSendBtn')
+  sendBtn.disabled = true
+  sendBtn.textContent = 'กำลังส่ง...'
+
+  try {
+    const { student, log } = lastScanResult
+    const ext = (selectedPhotoFile.name.split('.').pop() || 'jpg').toLowerCase()
+    const fileName = `${student.id}/${log.id}_${Date.now()}.${ext}`
+
+    const { error: uploadErr } = await supabase.storage
+      .from('scan-photos')
+      .upload(fileName, selectedPhotoFile, { contentType: selectedPhotoFile.type, upsert: false })
+
+    if (uploadErr) throw new Error('อัปโหลดรูปไม่สำเร็จ: ' + uploadErr.message)
+
+    const { data: urlData } = supabase.storage.from('scan-photos').getPublicUrl(fileName)
+
+    const { error: noteErr } = await supabase.from('student_notes').insert({
+      student_id: student.id,
+      log_id: log.id,
+      body: autoNoteText(lastScanResult),
+      photo_url: urlData.publicUrl,
+      created_by: currentUserEmail,
+    })
+
+    if (noteErr) throw new Error('บันทึกโน้ตไม่สำเร็จ: ' + noteErr.message)
+
+    toast('ส่งรูปให้ผู้ปกครองแล้ว', 'ok')
+    hidePhotoSection()
+  } catch (err) {
+    toast(err.message, 'err')
+    sendBtn.disabled = false
+    sendBtn.textContent = '✅ ส่งให้ผู้ปกครอง'
+  }
 }
 
 function subjectLabel(name = '') {
@@ -890,7 +1036,8 @@ async function saveAttendance(qrCode, subjectId) {
   return { action: 'in', student, subject, log: data }
 }
 
-function renderResult({ action, student, subject, log }) {
+function renderResult(scanResult) {
+  const { action, student, subject, log } = scanResult
   const theme = cls(subject.name)
   const isIn = action === 'in'
   resultEl.className = `result ${isIn ? 'in' : 'out'} ${theme}-theme`
@@ -919,6 +1066,7 @@ function renderResult({ action, student, subject, log }) {
       </div>
     </div>
   `
+  showPhotoSection(scanResult)
 }
 
 function showError(message) {
@@ -928,6 +1076,7 @@ function showError(message) {
     <div class="student-name">สแกนไม่ผ่าน</div>
     <div class="student-nick">${escapeHtml(message)}</div>
   `
+  hidePhotoSection()
 }
 
 async function loadHistory() {
