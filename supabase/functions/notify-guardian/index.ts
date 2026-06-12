@@ -12,6 +12,42 @@ function fmtTime(iso: string): string {
   }).format(new Date(iso))
 }
 
+// In-memory cache for the channel access token (per warm instance)
+let _tokenCache: { token: string; expiresAt: number } | null = null
+
+// Resolve the LINE channel access token.
+//  • If LINE_CHANNEL_ACCESS_TOKEN is set → use it (long-lived, from dashboard).
+//  • Else mint a short-lived one from LINE_CHANNEL_ID + LINE_CHANNEL_SECRET
+//    via client_credentials, and cache it until shortly before expiry.
+async function getLineToken(): Promise<string | null> {
+  const staticToken = Deno.env.get('LINE_CHANNEL_ACCESS_TOKEN')
+  if (staticToken) return staticToken
+
+  const id = Deno.env.get('LINE_CHANNEL_ID')
+  const secret = Deno.env.get('LINE_CHANNEL_SECRET')
+  if (!id || !secret) return null
+
+  if (_tokenCache && _tokenCache.expiresAt > Date.now()) return _tokenCache.token
+
+  const res = await fetch('https://api.line.me/v2/oauth/accessToken', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      grant_type: 'client_credentials',
+      client_id: id,
+      client_secret: secret,
+    }),
+  })
+  if (!res.ok) {
+    console.error('LINE token mint failed:', res.status, await res.text())
+    return null
+  }
+  const { access_token, expires_in } = await res.json()
+  // Refresh 1 day before the real expiry to be safe
+  _tokenCache = { token: access_token, expiresAt: Date.now() + (expires_in - 86400) * 1000 }
+  return access_token
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: cors })
   if (req.method !== 'POST') return json({ error: 'Method not allowed' }, 405)
@@ -28,8 +64,8 @@ Deno.serve(async (req) => {
       return json({ error: 'Missing or invalid fields' }, 400)
     }
 
-    const token = Deno.env.get('LINE_CHANNEL_ACCESS_TOKEN')
-    if (!token) return json({ error: 'LINE_CHANNEL_ACCESS_TOKEN not configured' }, 500)
+    const token = await getLineToken()
+    if (!token) return json({ error: 'LINE credentials not configured' }, 500)
 
     // Service role bypasses RLS — read guardian + log + subject server-side
     const supabase = createClient(
