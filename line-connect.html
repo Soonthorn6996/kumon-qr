@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ClassScan — เชื่อมต่อ LINE แจ้งเตือน</title>
+  <style>
+    :root {
+      --bg: #eaf4fb; --navy: #1a4a6e; --gold: #c9a227;
+      --line: #06C755; --line-h: #05b34e;
+      --text: #1a202c; --muted: #5a7a92;
+      --card: #ffffff; --border: #c5e3f2;
+      --ok-bg: #f0fdf4; --ok-fg: #166534; --ok-bd: #86efac;
+      --err-bg: #fff1f2; --err-fg: #9f1239; --err-bd: #fda4af;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', Tahoma, sans-serif;
+      background: var(--bg); min-height: 100vh;
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; padding: 20px;
+    }
+
+    .logo-bar {
+      text-align: center; margin-bottom: 28px;
+    }
+    .logo-bar img { width: 64px; height: 64px; border-radius: 50%; border: 3px solid var(--gold); object-fit: cover; }
+    .logo-bar .brand { font-size: 1rem; font-weight: 700; color: var(--navy); margin-top: 8px; }
+
+    .card {
+      background: var(--card); border-radius: 18px; width: 100%; max-width: 420px;
+      padding: 32px 28px; box-shadow: 0 4px 24px rgba(26,74,110,.12);
+      border: 1px solid rgba(197,227,242,.7);
+    }
+
+    /* Loading */
+    .spinner {
+      width: 40px; height: 40px; border: 4px solid var(--border);
+      border-top-color: var(--navy); border-radius: 50%;
+      animation: spin .8s linear infinite; margin: 20px auto;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-text { text-align: center; color: var(--muted); font-size: .9rem; }
+
+    /* Student info */
+    .student-avatar {
+      width: 72px; height: 72px; border-radius: 50%; object-fit: cover;
+      border: 3px solid var(--gold); display: block; margin: 0 auto 12px;
+    }
+    .student-initial {
+      width: 72px; height: 72px; border-radius: 50%; background: var(--navy);
+      color: white; font-size: 2rem; font-weight: 700; display: flex;
+      align-items: center; justify-content: center; margin: 0 auto 12px;
+    }
+    .student-name {
+      text-align: center; font-size: 1.2rem; font-weight: 700; color: var(--navy);
+    }
+    .student-label {
+      text-align: center; font-size: .82rem; color: var(--muted); margin-top: 4px; margin-bottom: 20px;
+    }
+
+    /* Section divider */
+    .divider { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
+
+    /* Connect section */
+    .section-title {
+      font-size: .88rem; font-weight: 700; color: var(--navy);
+      margin-bottom: 8px; display: flex; align-items: center; gap: 6px;
+    }
+    .desc { font-size: .84rem; color: var(--muted); line-height: 1.55; margin-bottom: 20px; }
+
+    .btn-line {
+      display: flex; align-items: center; justify-content: center; gap: 10px;
+      width: 100%; padding: 14px; border: none; border-radius: 12px;
+      background: var(--line); color: white; font-size: 1rem; font-weight: 700;
+      cursor: pointer; transition: background .15s;
+    }
+    .btn-line:hover { background: var(--line-h); }
+    .btn-line:disabled { opacity: .5; cursor: not-allowed; }
+    .btn-line svg { width: 24px; height: 24px; flex-shrink: 0; }
+
+    /* Connected state */
+    .connected-box {
+      background: var(--ok-bg); border: 1px solid var(--ok-bd); border-radius: 12px;
+      padding: 16px; display: flex; align-items: center; gap: 12px;
+    }
+    .line-avatar {
+      width: 48px; height: 48px; border-radius: 50%; object-fit: cover;
+      border: 2px solid var(--line); flex-shrink: 0;
+    }
+    .line-avatar-placeholder {
+      width: 48px; height: 48px; border-radius: 50%; background: var(--line);
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; font-size: 1.4rem;
+    }
+    .connected-info { flex: 1; min-width: 0; }
+    .connected-name { font-size: .95rem; font-weight: 700; color: var(--ok-fg); }
+    .connected-sub  { font-size: .78rem; color: var(--muted); margin-top: 2px; }
+
+    .btn-disconnect {
+      display: block; width: 100%; margin-top: 14px; padding: 10px;
+      border: 1.5px solid var(--err-bd); border-radius: 9px; background: white;
+      color: var(--err-fg); font-size: .82rem; font-weight: 600; cursor: pointer;
+    }
+    .btn-disconnect:hover { background: var(--err-bg); }
+
+    /* Alert */
+    .alert {
+      border-radius: 10px; padding: 14px 16px;
+      font-size: .85rem; font-weight: 600; line-height: 1.4; text-align: center;
+    }
+    .alert-err { background: var(--err-bg); color: var(--err-fg); border: 1px solid var(--err-bd); }
+    .alert-ok  { background: var(--ok-bg);  color: var(--ok-fg);  border: 1px solid var(--ok-bd);  }
+
+    .footer-note {
+      text-align: center; font-size: .75rem; color: var(--muted); margin-top: 20px;
+      line-height: 1.5;
+    }
+  </style>
+</head>
+<body>
+
+<div class="logo-bar">
+  <img src="/favicon.png" onerror="this.style.display='none'" alt="">
+  <div class="brand">ClassScan · KUMON โพนพิสัย</div>
+</div>
+
+<div class="card" id="card">
+  <div id="stateLoading">
+    <div class="spinner"></div>
+    <p class="loading-text">กำลังโหลด…</p>
+  </div>
+
+  <div id="stateError" style="display:none">
+    <div class="alert alert-err" id="errorMsg"></div>
+    <p class="footer-note">กรุณาติดต่อเจ้าหน้าที่เพื่อขอลิงก์ใหม่</p>
+  </div>
+
+  <div id="stateMain" style="display:none">
+    <!-- Student info -->
+    <div id="avatarWrap"></div>
+    <div class="student-name" id="studentName"></div>
+    <div class="student-label">ผู้ปกครองสามารถเชื่อมต่อ LINE เพื่อรับการแจ้งเตือน</div>
+
+    <hr class="divider">
+
+    <!-- Not connected -->
+    <div id="stateNotConnected">
+      <p class="section-title">📲 เชื่อมต่อ LINE</p>
+      <p class="desc">เมื่อเชื่อมต่อแล้ว ระบบจะส่งข้อความแจ้งเตือนการเช็คอิน / เช็คเอาท์ และรูปถ่ายจากศูนย์ไปยัง LINE ของท่านโดยตรง</p>
+      <button class="btn-line" id="connectBtn">
+        <svg viewBox="0 0 50 50" fill="white" xmlns="http://www.w3.org/2000/svg">
+          <path d="M25 5C13.97 5 5 12.86 5 22.5c0 7.22 4.76 13.49 11.77 16.68-.16.6-.52 2.12-.6 2.44-.09.4.15.39.32.28.13-.08 2.08-1.38 2.93-1.94.48.07.97.1 1.58.1C33.03 40 45 32.14 45 22.5S36.03 5 25 5z"/>
+        </svg>
+        เชื่อมต่อกับ LINE
+      </button>
+    </div>
+
+    <!-- Connected -->
+    <div id="stateConnected" style="display:none">
+      <p class="section-title">✅ เชื่อมต่อแล้ว</p>
+      <div class="connected-box">
+        <div id="lineAvatarWrap"></div>
+        <div class="connected-info">
+          <div class="connected-name" id="lineName"></div>
+          <div class="connected-sub">จะได้รับการแจ้งเตือนทาง LINE</div>
+        </div>
+      </div>
+      <button class="btn-disconnect" id="disconnectBtn">ยกเลิกการเชื่อมต่อ LINE</button>
+    </div>
+
+    <div id="alertBox" style="display:none; margin-top:14px;"></div>
+  </div>
+</div>
+
+<p class="footer-note">ClassScan v<span id="versionLabel"></span></p>
+
+<script src="/js/config.js"></script>
+<script src="/js/version.js"></script>
+<script type="module">
+  import { supabase } from '/js/supabase.js'
+
+  const params        = new URLSearchParams(location.search)
+  const studentToken  = params.get('token')   // = student.qr_code (shared by admin)
+  const oauthCode     = params.get('code')
+  const oauthState    = params.get('state')
+
+  if (window.CLASS_SCAN_VERSION) {
+    document.getElementById('versionLabel').textContent = window.CLASS_SCAN_VERSION
+  }
+
+  // ── Main entry ───────────────────────────────────────────────
+  async function init() {
+    if (!studentToken && !oauthState) {
+      return showError('ลิงก์ไม่ถูกต้อง หรือหมดอายุแล้ว')
+    }
+
+    // Coming back from LINE OAuth
+    if (oauthCode && oauthState) {
+      await handleOAuthCallback()
+      return
+    }
+
+    // Normal page load — fetch student
+    const { data: student, error } = await supabase
+      .from('students')
+      .select('name, nickname, photo_url, guardian_line_id, guardian_line_name, guardian_line_picture')
+      .eq('qr_code', studentToken)
+      .eq('is_active', true)
+      .maybeSingle()
+
+    if (error || !student) return showError('ไม่พบข้อมูลนักเรียน')
+
+    renderMain(student)
+
+    // Show success banner if just connected
+    if (params.get('connected') === '1') showAlert('เชื่อมต่อ LINE สำเร็จแล้ว! ท่านจะได้รับการแจ้งเตือนทาง LINE', 'ok')
+  }
+
+  // ── Render main state ────────────────────────────────────────
+  function renderMain(student) {
+    show('stateMain')
+
+    const name = student.nickname || student.name
+    document.getElementById('studentName').textContent = name
+
+    // Avatar
+    const wrap = document.getElementById('avatarWrap')
+    if (student.photo_url) {
+      wrap.innerHTML = `<img src="${student.photo_url}" class="student-avatar" alt="${name}">`
+    } else {
+      wrap.innerHTML = `<div class="student-initial">${name.charAt(0).toUpperCase()}</div>`
+    }
+
+    if (student.guardian_line_id) {
+      showConnected(student)
+    } else {
+      show('stateNotConnected')
+    }
+  }
+
+  function showConnected(student) {
+    hide('stateNotConnected')
+    show('stateConnected')
+    document.getElementById('lineName').textContent = student.guardian_line_name || 'LINE'
+
+    const wrap = document.getElementById('lineAvatarWrap')
+    if (student.guardian_line_picture) {
+      wrap.innerHTML = `<img src="${student.guardian_line_picture}" class="line-avatar" alt="">`
+    } else {
+      wrap.innerHTML = `<div class="line-avatar-placeholder">💬</div>`
+    }
+  }
+
+  // ── LINE OAuth: start ────────────────────────────────────────
+  document.getElementById('connectBtn').addEventListener('click', () => {
+    if (!CONFIG.LINE_LOGIN_CHANNEL_ID) {
+      return showAlert('ยังไม่ได้ตั้งค่า LINE_LOGIN_CHANNEL_ID ใน config', 'err')
+    }
+
+    const nonce = Array.from(crypto.getRandomValues(new Uint8Array(8)))
+      .map(b => b.toString(16).padStart(2, '0')).join('')
+    const stateObj = { token: studentToken, nonce }
+    const stateStr = btoa(JSON.stringify(stateObj))
+
+    sessionStorage.setItem('line_oauth_state', stateStr)
+
+    const redirectUri = `${location.origin}/line-connect.html`
+    const q = new URLSearchParams({
+      response_type: 'code',
+      client_id:     CONFIG.LINE_LOGIN_CHANNEL_ID,
+      redirect_uri:  redirectUri,
+      state:         stateStr,
+      scope:         'profile openid',
+    })
+    location.href = `https://access.line.me/oauth2/v2.1/authorize?${q}`
+  })
+
+  // ── LINE OAuth: callback ─────────────────────────────────────
+  async function handleOAuthCallback() {
+    const savedState = sessionStorage.getItem('line_oauth_state')
+    sessionStorage.removeItem('line_oauth_state')
+
+    let stateObj
+    try   { stateObj = JSON.parse(atob(oauthState)) }
+    catch { return showError('ข้อมูล state ไม่ถูกต้อง กรุณาลองใหม่') }
+
+    if (savedState && oauthState !== savedState) {
+      return showError('Session ไม่ตรงกัน กรุณาปิดแล้วเปิดลิงก์ใหม่')
+    }
+
+    const token = stateObj.token || studentToken
+    if (!token) return showError('ไม่พบข้อมูลนักเรียนใน state')
+
+    show('stateLoading')
+
+    const res = await fetch(`${CONFIG.SUPABASE_URL}/functions/v1/line-oauth`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': CONFIG.SUPABASE_ANON_KEY,
+      },
+      body: JSON.stringify({
+        code:          oauthCode,
+        redirect_uri:  `${location.origin}/line-connect.html`,
+        student_token: token,
+      }),
+    })
+
+    const result = await res.json()
+
+    if (!res.ok) {
+      return showError(result.error || 'เชื่อมต่อ LINE ไม่สำเร็จ กรุณาลองอีกครั้ง')
+    }
+
+    // Clean URL and reload to show connected state
+    location.replace(`${location.origin}/line-connect.html?token=${token}&connected=1`)
+  }
+
+  // ── Disconnect ───────────────────────────────────────────────
+  document.getElementById('disconnectBtn').addEventListener('click', async () => {
+    if (!confirm('ยกเลิกการเชื่อมต่อ LINE?\nท่านจะไม่ได้รับการแจ้งเตือนอีกต่อไป')) return
+
+    const { error } = await supabase
+      .from('students')
+      .update({ guardian_line_id: null, guardian_line_name: null, guardian_line_picture: null })
+      .eq('qr_code', studentToken)
+
+    if (error) return showAlert('เกิดข้อผิดพลาด: ' + error.message, 'err')
+
+    location.replace(`${location.origin}/line-connect.html?token=${studentToken}`)
+  })
+
+  // ── Helpers ──────────────────────────────────────────────────
+  function show(id) {
+    hide('stateLoading')
+    document.getElementById(id).style.display = ''
+  }
+  function hide(id) { document.getElementById(id).style.display = 'none' }
+
+  function showError(msg) {
+    hide('stateLoading')
+    hide('stateMain')
+    show('stateError')
+    document.getElementById('errorMsg').textContent = msg
+  }
+
+  function showAlert(msg, type = 'ok') {
+    const box = document.getElementById('alertBox')
+    box.className = `alert alert-${type}`
+    box.textContent = msg
+    box.style.display = ''
+  }
+
+  init()
+</script>
+</body>
+</html>

@@ -11,6 +11,9 @@ js/config.js
 .supabase/
 supabase/local_imports/
 
+# Data exports / รายชื่อนักเรียน — ข้อมูลส่วนบุคคล ห้าม commit
+*.csv
+
 # OS
 .DS_Store
 Thumbs.db

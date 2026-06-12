@@ -689,6 +689,9 @@ async function sendPhotoToParents() {
 
     if (noteErr) throw new Error('บันทึกโน้ตไม่สำเร็จ: ' + noteErr.message)
 
+    // Push the photo to the guardian's LINE (best-effort — skips if not connected)
+    notifyGuardianPhoto(student.id, urlData.publicUrl, autoNoteText(lastScanResult))
+
     toast('ส่งรูปให้ผู้ปกครองแล้ว', 'ok')
     hidePhotoSection()
   } catch (err) {
@@ -945,6 +948,7 @@ async function processScan(raw, manual = false) {
     const { qrCode, subjectId } = parsePayload(payload)
     const scanResult = await saveAttendance(qrCode, subjectId)
     renderResult(scanResult)
+    notifyGuardian(scanResult)   // fire-and-forget LINE push to guardian
     toast(scanResult.action === 'in' ? 'บันทึกเข้าเรียนแล้ว' : 'บันทึกออกเรียนแล้ว')
     manualCode.value = ''
     await stopScanner()
@@ -1034,6 +1038,40 @@ async function saveAttendance(qrCode, subjectId) {
 
   if (error) throw new Error('บันทึกเข้าไม่สำเร็จ: ' + error.message)
   return { action: 'in', student, subject, log: data }
+}
+
+// Send a LINE notification to the guardian (best-effort — never blocks scanning).
+// The Edge Function looks up guardian_line_id server-side; skips silently if not connected.
+function notifyGuardian(scanResult) {
+  try {
+    const { student, log, action } = scanResult
+    fetch(`${CONFIG.SUPABASE_URL}/functions/v1/notify-guardian`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': CONFIG.SUPABASE_ANON_KEY,
+      },
+      body: JSON.stringify({ student_id: student.id, action, log_id: log.id }),
+    }).catch(err => console.warn('notify-guardian failed:', err))
+  } catch (err) {
+    console.warn('notify-guardian skipped:', err)
+  }
+}
+
+// Push a scan photo (+ caption) to the guardian's LINE — best-effort.
+function notifyGuardianPhoto(studentId, photoUrl, caption) {
+  try {
+    fetch(`${CONFIG.SUPABASE_URL}/functions/v1/notify-guardian`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': CONFIG.SUPABASE_ANON_KEY,
+      },
+      body: JSON.stringify({ student_id: studentId, photo_url: photoUrl, caption }),
+    }).catch(err => console.warn('notify-guardian (photo) failed:', err))
+  } catch (err) {
+    console.warn('notify-guardian (photo) skipped:', err)
+  }
 }
 
 function renderResult(scanResult) {

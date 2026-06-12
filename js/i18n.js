@@ -127,6 +127,22 @@ const T = {
     leave_badge:          '📅 ลา',
     leave_select_ph:      '— เลือกนักเรียน —',
 
+    /* ── Parent (My Children) ── */
+    parent_title:         '👨‍👩‍👧 ลูกของฉัน',
+    parent_sub:           'ดูสถานะการเข้าเรียนและพัฒนาการของบุตรหลาน',
+    parent_no_children:   'ยังไม่มีนักเรียนผูกกับบัญชีของท่าน กรุณาติดต่อเจ้าหน้าที่',
+    parent_perm_desc:     'เปิดการแจ้งเตือนเพื่อรับข่าวสารเมื่อบุตรหลานเข้า-ออกห้องเรียน',
+    parent_latest_notes:  'บันทึกล่าสุด',
+    parent_no_notes:      'ยังไม่มีบันทึกพัฒนาการ',
+    parent_view_all:      'ดูทั้งหมด →',
+    parent_report_leave:  '📅 แจ้งลา',
+    parent_enable_notif:  '🔔 เปิดการแจ้งเตือน',
+    parent_notif_on:      '🔔 เปิดการแจ้งเตือนแล้ว',
+    parent_notif_blocked: '🔕 การแจ้งเตือนถูกบล็อก',
+    parent_line_connect:  '💬 เชื่อมต่อ LINE แจ้งเตือน',
+    parent_line_connected:'✅ เชื่อมต่อ LINE แล้ว',
+    parent_since:         'เข้าเมื่อ',
+
     /* ── Settings ── */
     settings_title:    'ตั้งค่าระบบ',
     settings_sub:      'ภาษา & จัดการบัญชีผู้ใช้',
@@ -287,6 +303,22 @@ const T = {
     leave_today_heading:  'Absent Today',
     leave_badge:          '📅 Leave',
     leave_select_ph:      '— Select Student —',
+
+    /* ── Parent (My Children) ── */
+    parent_title:         '👨‍👩‍👧 My Children',
+    parent_sub:           "View your children's attendance and progress",
+    parent_no_children:   'No students are linked to your account yet. Please contact staff.',
+    parent_perm_desc:     'Enable notifications to get alerts when your child checks in or out.',
+    parent_latest_notes:  'Latest Notes',
+    parent_no_notes:      'No progress notes yet',
+    parent_view_all:      'View all →',
+    parent_report_leave:  '📅 Report Leave',
+    parent_enable_notif:  '🔔 Enable Notifications',
+    parent_notif_on:      '🔔 Notifications On',
+    parent_notif_blocked: '🔕 Notifications Blocked',
+    parent_line_connect:  '💬 Connect LINE Alerts',
+    parent_line_connected:'✅ LINE Connected',
+    parent_since:         'Since',
 
     /* ── Settings ── */
     settings_title:    'System Settings',

@@ -4,10 +4,14 @@ export const ROLE = { ADMIN: 'admin', TEACHER: 'teacher', VIEW: 'view' }
 
 // Pages each role may access
 const ACCESS = {
-  admin:   ['dashboard', 'scan', 'admin_panel', 'settings', 'notify', 'notes', 'leave'],
-  teacher: ['dashboard', 'scan', 'admin_panel', 'notify', 'notes', 'leave'],
-  view:    ['dashboard', 'notes', 'leave'],
+  admin:   ['home', 'dashboard', 'scan', 'admin_panel', 'settings', 'notify', 'notes', 'leave'],
+  teacher: ['home', 'dashboard', 'scan', 'admin_panel', 'notify', 'notes', 'leave'],
+  view:    ['parent', 'notes', 'leave'],
 }
+
+// Landing page for each role (where login + access-denied redirects point)
+const HOME = { admin: '/index.html', teacher: '/index.html', view: '/parent.html' }
+export function homeFor(role) { return HOME[role] || '/parent.html' }
 
 const LABELS = {
   th: { admin: 'ผู้ดูแลระบบ', teacher: 'ครูผู้ช่วย', view: 'ดูอย่างเดียว' },
@@ -47,7 +51,7 @@ export async function requirePage(page) {
 
   const profile = await getProfile()
   if (!canAccess(profile, page)) {
-    window.location.replace('/dashboard.html')
+    window.location.replace(homeFor(profile?.role))
     return null
   }
   return { session, profile }

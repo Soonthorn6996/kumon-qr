@@ -259,6 +259,17 @@
     }
     .btn-del:hover { background: #fff5f5; color: #e53e3e; }
 
+    .btn-line-copy {
+      background: none; border: none; cursor: pointer;
+      padding: 5px 8px; border-radius: 7px; font-size: .8rem; color: #06C755;
+    }
+    .btn-line-copy:hover { background: #f0fdf4; }
+    .line-dot {
+      display: inline-block; width: 7px; height: 7px; border-radius: 50%;
+      background: #06C755; margin-left: 4px; vertical-align: middle;
+      title: 'LINE เชื่อมต่อแล้ว';
+    }
+
     .card-subjects { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 13px; }
 
     .badge {
@@ -852,7 +863,7 @@ async function loadStudents() {
   let { data, error } = await supabase
     .from('students')
     .select(`
-      id, name, nickname, grade_level, qr_code, created_at,
+      id, name, nickname, grade_level, qr_code, created_at, guardian_line_id, guardian_line_name,
       student_subjects ( subject_id, subjects ( id, name, color ) )
     `)
     .eq('is_active', true)
@@ -863,7 +874,7 @@ async function loadStudents() {
     const fallback = await supabase
       .from('students')
       .select(`
-        id, name, nickname, qr_code, created_at,
+        id, name, nickname, qr_code, created_at, guardian_line_id, guardian_line_name,
         student_subjects ( subject_id, subjects ( id, name, color ) )
       `)
       .eq('is_active', true)
@@ -1088,6 +1099,7 @@ function renderStudents() {
           </div>
           <div class="card-actions">
             <button class="btn-qr"          onclick="openQR('${s.id}')">📱 QR</button>
+            <button class="btn-line-copy"   onclick="copyLineLink('${s.qr_code}', this)" title="${s.guardian_line_id ? 'LINE เชื่อมต่อแล้ว: ' + (s.guardian_line_name || '') : 'คัดลอกลิงก์ผู้ปกครอง LINE'}">💬${s.guardian_line_id ? '<span class="line-dot"></span>' : ''}</button>
             <button class="btn-icon edit"   onclick="openEdit('${s.id}')" title="แก้ไข">✏️</button>
             <button class="btn-del"         onclick="doDelete('${s.id}')">🗑️</button>
           </div>
@@ -1296,6 +1308,19 @@ async function doUpdate(id, { name, nickname, grade_level, selected }) {
   closeModal('addModal')
   toast(`แก้ไข "${name}" สำเร็จแล้ว ✓`)
   await loadStudents()
+}
+
+// ── LINE parent link ─────────────────────────────────────────
+
+window.copyLineLink = (qrCode, btn) => {
+  const url = `${location.origin}/line-connect.html?token=${qrCode}`
+  navigator.clipboard.writeText(url).then(() => {
+    const orig = btn.innerHTML
+    btn.innerHTML = '✅'
+    setTimeout(() => { btn.innerHTML = orig }, 1800)
+  }).catch(() => {
+    prompt('คัดลอกลิงก์นี้ส่งให้ผู้ปกครอง:', url)
+  })
 }
 
 // ── QR Section ────────────────────────────────────────────────

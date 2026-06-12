@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KUMON — ลูกของฉัน</title>
+  <style>
+    :root {
+      --bg: #eaf4fb; --navy: #1a4a6e; --primary: #f97316;
+      --gold: #c9a227; --blue: #5ba4cf; --text: #1a202c;
+      --muted: #5a7a92; --border: #c5e3f2; --card: #ffffff;
+      --line: #06C755;
+      --ok-bg: #ecfdf5; --ok-fg: #047857; --ok-bd: #6ee7b7;
+      --wait-bg: #f1f5f9; --wait-fg: #64748b;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', Tahoma, sans-serif; background: var(--bg); min-height: 100vh; }
+
+    nav {
+      background: var(--navy); padding: 0 20px; height: 58px;
+      display: flex; align-items: center; justify-content: space-between;
+      position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 8px rgba(0,0,0,.2);
+    }
+    .nav-brand { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+    .nav-brand img { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; border: 2px solid var(--gold); }
+    .nav-brand span { font-weight: 700; font-size: 1rem; color: white; }
+    .nav-right { display: flex; align-items: center; gap: 10px; }
+    .nav-email { font-size: .78rem; color: #a0c4dd; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .nav-logout { background: transparent; border: 1px solid #3a6a90; color: #a0c4dd; padding: 5px 12px; border-radius: 6px; cursor: pointer; font-size: .8rem; white-space: nowrap; }
+    .nav-logout:hover { background: #3a6a90; color: white; }
+
+    .hero { background: linear-gradient(135deg, var(--navy) 0%, #2a6496 100%); color: white; padding: 28px 20px; text-align: center; }
+    .hero h2 { font-size: 1.4rem; font-weight: 700; margin-bottom: 5px; }
+    .hero p { color: #a0c4dd; font-size: .88rem; }
+
+    .container { max-width: 760px; margin: 0 auto; padding: 22px 16px 40px; display: flex; flex-direction: column; gap: 16px; }
+
+    /* Notification opt-in bar */
+    .notif-bar {
+      background: var(--card); border-radius: 12px; padding: 12px 16px;
+      box-shadow: 0 2px 8px rgba(26,74,110,.07); border: 1px solid rgba(197,227,242,.6);
+      display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    }
+    .notif-bar p { font-size: .82rem; color: var(--muted); }
+    .btn-notif {
+      background: var(--primary); color: white; border: none; padding: 8px 14px;
+      border-radius: 8px; cursor: pointer; font-size: .82rem; font-weight: 700; white-space: nowrap;
+    }
+    .btn-notif:disabled { background: #10b981; cursor: default; opacity: 1; }
+
+    /* Child card */
+    .child-card {
+      background: var(--card); border-radius: 14px; padding: 18px;
+      box-shadow: 0 2px 10px rgba(26,74,110,.08); border: 1px solid rgba(197,227,242,.6);
+      border-left: 4px solid var(--primary);
+    }
+    .child-head { display: flex; align-items: center; gap: 14px; }
+    .child-avatar { width: 54px; height: 54px; border-radius: 50%; object-fit: cover; border: 2px solid var(--gold); flex-shrink: 0; }
+    .child-avatar-ph {
+      width: 54px; height: 54px; border-radius: 50%; flex-shrink: 0;
+      background: linear-gradient(135deg, var(--navy), var(--blue));
+      display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 1.3rem;
+    }
+    .child-info { flex: 1; min-width: 0; }
+    .child-name { font-size: 1.05rem; font-weight: 700; color: var(--navy); }
+    .child-meta { font-size: .78rem; color: var(--muted); margin-top: 2px; }
+    .status-pill {
+      display: inline-flex; align-items: center; gap: 5px; font-size: .78rem; font-weight: 700;
+      padding: 4px 12px; border-radius: 999px; white-space: nowrap;
+    }
+    .status-pill.in  { background: var(--ok-bg); color: var(--ok-fg); border: 1px solid var(--ok-bd); }
+    .status-pill.out { background: var(--wait-bg); color: var(--wait-fg); border: 1px solid var(--border); }
+    .pill-dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+
+    .child-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+    .child-actions a {
+      text-decoration: none; font-size: .8rem; font-weight: 700; padding: 7px 13px; border-radius: 8px;
+      border: 1px solid var(--border); color: var(--navy); background: white;
+    }
+    .child-actions a:hover { background: #f1f5f9; }
+    .child-actions a.line { border-color: var(--line); color: var(--line); }
+    .child-actions a.line.done { border-color: var(--ok-bd); color: var(--ok-fg); background: var(--ok-bg); pointer-events: none; }
+
+    /* Notes preview */
+    .notes-block { margin-top: 14px; border-top: 1px dashed var(--border); padding-top: 12px; }
+    .notes-block-title {
+      font-size: .76rem; font-weight: 700; color: var(--muted); text-transform: uppercase;
+      letter-spacing: .5px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;
+    }
+    .notes-block-title a { font-size: .74rem; color: var(--primary); text-decoration: none; font-weight: 700; }
+    .note-mini { background: #f8fafc; border-radius: 9px; padding: 9px 12px; margin-bottom: 7px; }
+    .note-mini:last-child { margin-bottom: 0; }
+    .note-mini-meta { font-size: .72rem; color: var(--muted); margin-bottom: 3px; }
+    .note-mini-body { font-size: .86rem; color: var(--text); line-height: 1.5; white-space: pre-wrap; word-break: break-word; }
+    .note-mini-empty { font-size: .82rem; color: var(--muted); font-style: italic; }
+
+    .empty-state { text-align: center; padding: 40px 24px; color: var(--muted); font-size: .92rem; background: var(--card); border-radius: 14px; box-shadow: 0 2px 10px rgba(26,74,110,.08); }
+    #statusMsg { text-align: center; padding: 24px; color: var(--muted); font-size: .9rem; }
+
+    @media (max-width: 600px) { .nav-email { display: none; } }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="/parent.html" class="nav-brand">
+    <img src="/LOGO.jpg" alt="KUMON">
+    <span>KUMON โพนพิสัย</span>
+  </a>
+  <div class="nav-right">
+    <span class="nav-email" id="userEmail"></span>
+    <button type="button" class="nav-logout" id="logoutBtn" data-i18n="logout">ออกจากระบบ</button>
+  </div>
+</nav>
+
+<div class="hero">
+  <h2 data-i18n="parent_title">👨‍👩‍👧 ลูกของฉัน</h2>
+  <p data-i18n="parent_sub">ดูสถานะการเข้าเรียนและพัฒนาการของบุตรหลาน</p>
+</div>
+
+<div class="container">
+  <div class="notif-bar" id="notifBar" hidden>
+    <p data-i18n="parent_perm_desc">เปิดการแจ้งเตือนเพื่อรับข่าวสารเมื่อบุตรหลานเข้า-ออกห้องเรียน</p>
+    <button class="btn-notif" id="notifBtn" data-i18n="parent_enable_notif">🔔 เปิดการแจ้งเตือน</button>
+  </div>
+
+  <div id="statusMsg">กำลังโหลด...</div>
+  <div id="childList"></div>
+</div>
+
+<script src="/js/config.js"></script>
+<script type="module">
+import { supabase }    from '/js/supabase.js'
+import { logout }      from '/js/auth.js'
+import { requirePage } from '/js/rbac.js'
+import { initBell }    from '/js/bell.js'
+import { applyI18n, t, getLang } from '/js/i18n.js'
+import { loadWatches, requestPermission, getPermission } from '/js/notifications.js'
+
+applyI18n()
+
+let childIds = []
+let students = []
+let openLogs = []
+let notesByStudent = new Map()
+
+// ── Init ─────────────────────────────────────────────────────
+async function init() {
+  const result = await requirePage('parent')
+  if (!result) return
+  const { session, profile } = result
+  document.getElementById('userEmail').textContent = session.user.email
+  document.getElementById('logoutBtn').addEventListener('click', logout)
+
+  // Browser notifications (realtime check-in/out)
+  initBell(session, profile)
+  setupNotifBar()
+
+  childIds = await loadWatches(session.user.id)
+  if (!childIds.length) {
+    document.getElementById('statusMsg').textContent = ''
+    document.getElementById('childList').innerHTML =
+      `<div class="empty-state">${t('parent_no_children')}</div>`
+    return
+  }
+
+  await loadData()
+  subscribeRealtime()
+}
+
+// ── Notification permission bar ──────────────────────────────
+function setupNotifBar() {
+  const bar = document.getElementById('notifBar')
+  const btn = document.getElementById('notifBtn')
+  const perm = getPermission()
+  if (perm === 'unsupported') return        // hide bar entirely
+  bar.hidden = false
+  updateNotifBtn(perm)
+  btn.addEventListener('click', async () => {
+    const p = await requestPermission()
+    updateNotifBtn(p)
+  })
+}
+
+function updateNotifBtn(perm) {
+  const btn = document.getElementById('notifBtn')
+  if (perm === 'granted') { btn.textContent = t('parent_notif_on'); btn.disabled = true }
+  else if (perm === 'denied') { btn.textContent = t('parent_notif_blocked'); btn.disabled = true }
+  else { btn.textContent = t('parent_enable_notif'); btn.disabled = false }
+}
+
+// ── Load children + status + notes ───────────────────────────
+async function loadData() {
+  const [{ data: studentData }, { data: logData }, { data: notesData }] = await Promise.all([
+    supabase.from('students')
+      .select('id, name, nickname, photo_url, qr_code, guardian_line_id')
+      .in('id', childIds)
+      .order('name'),
+    supabase.from('attendance_logs')
+      .select('id, student_id, check_in_at, subjects ( name )')
+      .is('check_out_at', null)
+      .in('student_id', childIds),
+    supabase.from('student_notes')
+      .select('id, student_id, body, created_by, created_at')
+      .in('student_id', childIds)
+      .order('created_at', { ascending: false })
+      .limit(60),
+  ])
+
+  students = studentData || []
+  openLogs = logData || []
+
+  notesByStudent = new Map()
+  for (const n of (notesData || [])) {
+    const arr = notesByStudent.get(n.student_id) || []
+    if (arr.length < 3) arr.push(n)          // keep latest 3 per child
+    notesByStudent.set(n.student_id, arr)
+  }
+
+  document.getElementById('statusMsg').textContent = ''
+  render()
+}
+
+// Re-query only open logs (cheap) when realtime fires
+async function refreshStatus() {
+  const { data } = await supabase.from('attendance_logs')
+    .select('id, student_id, check_in_at, subjects ( name )')
+    .is('check_out_at', null)
+    .in('student_id', childIds)
+  openLogs = data || []
+  render()
+}
+
+// ── Render ───────────────────────────────────────────────────
+function render() {
+  const lang = getLang()
+  const openMap = new Map()
+  openLogs.forEach(l => { if (!openMap.has(l.student_id)) openMap.set(l.student_id, l) })
+
+  document.getElementById('childList').innerHTML = students.map(s => {
+    const initial = ((s.nickname || s.name || '?')[0]).toUpperCase()
+    const avatar = s.photo_url
+      ? `<img class="child-avatar" src="${escapeHtml(s.photo_url)}" alt="">`
+      : `<div class="child-avatar-ph">${escapeHtml(initial)}</div>`
+
+    const open = openMap.get(s.id)
+    const subj = open?.subjects?.name ? ` · ${escapeHtml(open.subjects.name)}` : ''
+    const since = open ? ` · ${t('parent_since')} ${fmtTime(open.check_in_at)}` : ''
+    const pill = open
+      ? `<span class="status-pill in"><span class="pill-dot"></span>${t('status_in')}${subj}</span>`
+      : `<span class="status-pill out"><span class="pill-dot"></span>${t('status_out')}</span>`
+
+    const name = escapeHtml(s.name)
+    const nick = s.nickname ? ` (${escapeHtml(s.nickname)})` : ''
+
+    // LINE connect button
+    const lineBtn = s.guardian_line_id
+      ? `<a class="line done">${t('parent_line_connected')}</a>`
+      : `<a class="line" href="/line-connect.html?token=${encodeURIComponent(s.qr_code)}">${t('parent_line_connect')}</a>`
+
+    // Notes preview
+    const notes = notesByStudent.get(s.id) || []
+    const notesHtml = notes.length
+      ? notes.map(n => `
+          <div class="note-mini">
+            <div class="note-mini-meta">${fmtDate(n.created_at, lang)} · ${escapeHtml(n.created_by)}</div>
+            <div class="note-mini-body">${escapeHtml(n.body)}</div>
+          </div>`).join('')
+      : `<div class="note-mini-empty">${t('parent_no_notes')}</div>`
+
+    return `
+      <div class="child-card">
+        <div class="child-head">
+          ${avatar}
+          <div class="child-info">
+            <div class="child-name">${name}${nick}</div>
+            <div class="child-meta">${since || '—'}</div>
+          </div>
+          ${pill}
+        </div>
+        <div class="child-actions">
+          <a href="/notes.html">📝 ${t('parent_latest_notes')}</a>
+          <a href="/leave.html">${t('parent_report_leave')}</a>
+          ${lineBtn}
+        </div>
+        <div class="notes-block">
+          <div class="notes-block-title">
+            <span>${t('parent_latest_notes')}</span>
+            <a href="/notes.html">${t('parent_view_all')}</a>
+          </div>
+          ${notesHtml}
+        </div>
+      </div>`
+  }).join('')
+}
+
+// ── Realtime ─────────────────────────────────────────────────
+function subscribeRealtime() {
+  supabase.channel('parent-attendance')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'attendance_logs' }, payload => {
+      const sid = payload.new?.student_id || payload.old?.student_id
+      if (sid && childIds.includes(sid)) refreshStatus()
+    })
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'student_notes' }, payload => {
+      if (payload.new?.student_id && childIds.includes(payload.new.student_id)) loadData()
+    })
+    .subscribe()
+}
+
+// ── Helpers ──────────────────────────────────────────────────
+function escapeHtml(v) {
+  return String(v ?? '').replace(/[&<>"']/g, c =>
+    ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#039;' }[c]))
+}
+function fmtDate(v, lang = 'th') {
+  if (!v) return '-'
+  return new Intl.DateTimeFormat(lang === 'th' ? 'th-TH' : 'en-GB', {
+    day: 'numeric', month: 'short', year: 'numeric'
+  }).format(new Date(v))
+}
+function fmtTime(v) {
+  if (!v) return '-'
+  return new Intl.DateTimeFormat('th-TH', { hour: '2-digit', minute: '2-digit' }).format(new Date(v))
+}
+
+init()
+</script>
+<script src="/js/version.js"></script>
+</body>
+</html>

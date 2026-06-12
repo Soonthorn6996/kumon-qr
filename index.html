@@ -255,7 +255,7 @@
   applyI18n()
 
   async function init() {
-    const result = await requirePage('dashboard')
+    const result = await requirePage('home')
     if (!result) return
     const { session, profile } = result
     initBell(session, profile)
@@ -265,13 +265,8 @@
     document.getElementById('userEmail').textContent = session.user.email + roleTxt
     document.getElementById('logoutBtn').addEventListener('click', logout)
 
-    // Hide menu cards based on role
-    if (role === 'view') {
-      document.getElementById('cardScan')?.remove()
-      document.getElementById('cardAdmin')?.remove()
-      document.getElementById('cardSettings')?.remove()
-      document.getElementById('cardNotify')?.remove()
-    } else if (role === 'teacher') {
+    // Hide menu cards based on role (view users never reach this staff page)
+    if (role === 'teacher') {
       document.getElementById('cardSettings')?.remove()
     }
   }

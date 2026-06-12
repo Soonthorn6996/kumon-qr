@@ -401,28 +401,37 @@ async function handleCreateUser() {
   btn.disabled = true
   btn.textContent = t('creating')
 
-  const { data, error } = await supabase.auth.signUp({ email, password })
+  const serviceKey = CONFIG.SUPABASE_SERVICE_ROLE_KEY
+  if (!serviceKey) {
+    btn.disabled = false
+    btn.textContent = t('submitCreate')
+    return showAlert('error', 'ยังไม่ได้ตั้งค่า SUPABASE_SERVICE_ROLE_KEY ใน config.js')
+  }
+
+  // ใช้ Admin API — ไม่ส่ง email และ verify ทันที
+  const res = await fetch(`${CONFIG.SUPABASE_URL}/auth/v1/admin/users`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${serviceKey}`,
+      'apikey': serviceKey,
+    },
+    body: JSON.stringify({ email, password, email_confirm: true }),
+  })
+
+  const result = await res.json()
 
   btn.disabled = false
   btn.textContent = t('submitCreate')
 
-  if (error) return showAlert('error', error.message)
+  if (!res.ok) return showAlert('error', result.msg || result.message || 'สร้าง user ไม่สำเร็จ')
 
-  // Safety net: upsert into profiles (trigger handles it, this is fallback)
-  if (data.user) {
+  // Profile upsert safety net
+  if (result.id) {
     await supabase.from('profiles').upsert({
-      id: data.user.id,
-      email: data.user.email,
-      created_at: data.user.created_at || new Date().toISOString()
-    }).select()
-  }
-
-  // Check if admin got signed out (happens when email confirmation is OFF)
-  const { data: { session } } = await supabase.auth.getSession()
-  if (!session || session.user.email !== currentUserEmail) {
-    localStorage.setItem('classscan_notice', t('noticeRelogin', email))
-    window.location.href = '/login.html'
-    return
+      id: result.id, email: result.email,
+      role: 'view', created_at: new Date().toISOString()
+    })
   }
 
   showAlert('success', t('successCreate', email))
