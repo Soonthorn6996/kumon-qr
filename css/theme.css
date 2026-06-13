@@ -78,3 +78,62 @@ input, select, textarea { transition: border-color .15s ease, box-shadow .15s ea
 input:focus, select:focus, textarea:focus {
   box-shadow: 0 0 0 3px rgba(91, 164, 207, .15);
 }
+
+/* ============================================================
+   Component redesign — nav, menu cards, cards, buttons, pills
+   (all shared class hooks; refines every page at once)
+   ============================================================ */
+
+/* ── Top navigation: refined navy bar + ghost-pill actions ── */
+nav {
+  box-shadow: 0 8px 24px -12px rgba(15, 23, 42, .45);
+  border-bottom: 1px solid rgba(255, 255, 255, .06);
+}
+.nav-brand span { letter-spacing: .2px; }
+.nav-brand img { box-shadow: 0 0 0 2px rgba(255, 255, 255, .18); }
+.nav-logout, .nav-back, .nav-link {
+  border-radius: 9px;
+  border: 1px solid rgba(255, 255, 255, .22);
+  padding: 7px 14px;
+  font-weight: 600;
+}
+.nav-logout:hover, .nav-back:hover, .nav-link:hover {
+  background: rgba(255, 255, 255, .14);
+  color: #ffffff;
+}
+
+/* ── Home menu cards: minimal icon badge + neutral frame ──── */
+.menu-card {
+  border: 1px solid var(--border);
+  border-bottom-width: 3px;          /* keeps the per-card colour accent */
+  padding: 26px 18px;
+}
+.menu-card .icon {
+  width: 54px; height: 54px;
+  display: inline-flex; align-items: center; justify-content: center;
+  border-radius: 14px;
+  background: rgba(26, 74, 110, .07);
+  font-size: 1.7rem;
+  margin: 0 auto 14px;
+}
+.menu-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-lg); }
+@media (max-width: 640px) {
+  .menu-card .icon { margin: 0; }   /* row layout on mobile */
+}
+
+/* ── Generic cards: hairline border for crisp minimal edges ── */
+.card, .write-card, .user-card, .perm-card, .child-card, .note-card,
+.filter-bar, .notif-bar, .summary-box, .student-row, .student-card {
+  border: 1px solid var(--border);
+}
+
+/* ── Buttons: unified radius + weight ─────────────────────── */
+.btn, .btn-primary, .btn-enable, .btn-line, .btn-notif, .btn-add,
+.btn-disconnect, .btn-note-submit, .btn-note-cancel {
+  border-radius: 10px;
+  font-weight: 700;
+}
+
+/* ── Pills & badges: fully rounded, modern ────────────────── */
+.role-badge, .status-pill, .subject-badge, .leave-chip,
+.badge, .bell-badge { border-radius: 999px; }
