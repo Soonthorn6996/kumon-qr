@@ -11,8 +11,10 @@ module.exports = function handler(req, res) {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
     ''
 
-  // LINE Login Channel ID — used by line-connect.html for guardian OAuth
-  const lineLoginChannelId = process.env.LINE_LOGIN_CHANNEL_ID || ''
+  // LINE Login Channel ID — used by line-connect.html for guardian OAuth.
+  // Public value (sent to the browser + appears in OAuth URLs), so it is safe
+  // to hardcode as a default; override via env var if it ever changes.
+  const lineLoginChannelId = process.env.LINE_LOGIN_CHANNEL_ID || '2010383365'
 
   const body = `window.CONFIG = {
   SUPABASE_URL: ${JSON.stringify(url)},
