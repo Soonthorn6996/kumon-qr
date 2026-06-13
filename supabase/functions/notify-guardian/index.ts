@@ -73,20 +73,40 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
     )
 
-    // 1. Student + guardian LINE id
+    // 1. Student (for the message text)
     const { data: student, error: sErr } = await supabase
       .from('students')
-      .select('id, name, nickname, guardian_line_id')
+      .select('id, name, nickname')
       .eq('id', student_id)
       .maybeSingle()
 
     if (sErr) return json({ error: 'DB error (student): ' + sErr.message }, 500)
     if (!student) return json({ error: 'Student not found' }, 404)
 
-    // No guardian connected → nothing to send (not an error)
-    if (!student.guardian_line_id) return json({ ok: true, skipped: 'no_guardian' })
+    // 2. Find guardians who watch this student AND have connected LINE
+    //    student → user_student_watches → profiles.line_user_id
+    const { data: watches, error: wErr } = await supabase
+      .from('user_student_watches')
+      .select('user_id')
+      .eq('student_id', student_id)
 
-    // 2. Build the LINE messages array
+    if (wErr) return json({ error: 'DB error (watches): ' + wErr.message }, 500)
+
+    const userIds = (watches || []).map((w) => w.user_id)
+    if (!userIds.length) return json({ ok: true, skipped: 'no_watchers' })
+
+    const { data: profiles, error: pErr } = await supabase
+      .from('profiles')
+      .select('line_user_id')
+      .in('id', userIds)
+      .not('line_user_id', 'is', null)
+
+    if (pErr) return json({ error: 'DB error (profiles): ' + pErr.message }, 500)
+
+    const recipients = [...new Set((profiles || []).map((p) => p.line_user_id))]
+    if (!recipients.length) return json({ ok: true, skipped: 'no_line_connected' })
+
+    // 3. Build the LINE messages array
     const messages: unknown[] = []
 
     if (isPhoto) {
@@ -123,23 +143,23 @@ Deno.serve(async (req) => {
       messages.push({ type: 'text', text })
     }
 
-    // 3. Push to LINE Messaging API
-    const lineRes = await fetch('https://api.line.me/v2/bot/message/push', {
+    // 4. Push to all connected guardians at once (multicast)
+    const lineRes = await fetch('https://api.line.me/v2/bot/message/multicast', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify({ to: student.guardian_line_id, messages }),
+      body: JSON.stringify({ to: recipients, messages }),
     })
 
     if (!lineRes.ok) {
       const err = await lineRes.text()
-      console.error('LINE push error:', lineRes.status, err)
+      console.error('LINE multicast error:', lineRes.status, err)
       return json({ error: 'LINE push failed', detail: err }, 502)
     }
 
-    return json({ ok: true, sent: true })
+    return json({ ok: true, sent: recipients.length })
 
   } catch (e) {
     console.error('notify-guardian error:', e)

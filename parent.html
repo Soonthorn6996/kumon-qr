@@ -119,6 +119,12 @@
 </div>
 
 <div class="container">
+  <!-- LINE connection (account-level) -->
+  <div class="notif-bar" id="lineBar" hidden>
+    <p id="lineBarText">รับการแจ้งเตือนทาง LINE เมื่อบุตรหลานเข้า-ออกห้องเรียน</p>
+    <a class="btn-notif" id="lineBtn" href="/line-connect.html" style="background:#06C755; text-decoration:none;">💬 เชื่อมต่อ LINE</a>
+  </div>
+
   <div class="notif-bar" id="notifBar" hidden>
     <p data-i18n="parent_perm_desc">เปิดการแจ้งเตือนเพื่อรับข่าวสารเมื่อบุตรหลานเข้า-ออกห้องเรียน</p>
     <button class="btn-notif" id="notifBtn" data-i18n="parent_enable_notif">🔔 เปิดการแจ้งเตือน</button>
@@ -155,6 +161,7 @@ async function init() {
   // Browser notifications (realtime check-in/out)
   initBell(session, profile)
   setupNotifBar()
+  renderLineBar(session.user.id)
 
   childIds = await loadWatches(session.user.id)
   if (!childIds.length) {
@@ -189,11 +196,35 @@ function updateNotifBtn(perm) {
   else { btn.textContent = t('parent_enable_notif'); btn.disabled = false }
 }
 
+// ── LINE connection bar (account-level) ──────────────────────
+async function renderLineBar(userId) {
+  const bar  = document.getElementById('lineBar')
+  const text = document.getElementById('lineBarText')
+  const btn  = document.getElementById('lineBtn')
+  bar.hidden = false
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('line_user_id, line_display_name')
+    .eq('id', userId)
+    .maybeSingle()
+
+  if (profile?.line_user_id) {
+    text.textContent = `✅ เชื่อมต่อ LINE แล้ว (${profile.line_display_name || 'LINE'})`
+    btn.textContent = 'จัดการ'
+    btn.style.background = '#5a7a92'
+  } else {
+    text.textContent = 'รับการแจ้งเตือนทาง LINE เมื่อบุตรหลานเข้า-ออกห้องเรียน'
+    btn.textContent = '💬 เชื่อมต่อ LINE'
+    btn.style.background = '#06C755'
+  }
+}
+
 // ── Load children + status + notes ───────────────────────────
 async function loadData() {
   const [{ data: studentData }, { data: logData }, { data: notesData }] = await Promise.all([
     supabase.from('students')
-      .select('id, name, nickname, photo_url, qr_code, guardian_line_id')
+      .select('id, name, nickname, photo_url')
       .in('id', childIds)
       .order('name'),
     supabase.from('attendance_logs')
@@ -253,11 +284,6 @@ function render() {
     const name = escapeHtml(s.name)
     const nick = s.nickname ? ` (${escapeHtml(s.nickname)})` : ''
 
-    // LINE connect button
-    const lineBtn = s.guardian_line_id
-      ? `<a class="line done">${t('parent_line_connected')}</a>`
-      : `<a class="line" href="/line-connect.html?token=${encodeURIComponent(s.qr_code)}">${t('parent_line_connect')}</a>`
-
     // Notes preview
     const notes = notesByStudent.get(s.id) || []
     const notesHtml = notes.length
@@ -281,7 +307,6 @@ function render() {
         <div class="child-actions">
           <a href="/notes.html">📝 ${t('parent_latest_notes')}</a>
           <a href="/leave.html">${t('parent_report_leave')}</a>
-          ${lineBtn}
         </div>
         <div class="notes-block">
           <div class="notes-block-title">

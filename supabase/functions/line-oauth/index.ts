@@ -5,20 +5,30 @@ const cors = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+// Connects the logged-in parent's LINE account to their profile.
+// The caller proves identity with their Supabase access token; we then
+// exchange the LINE authorization code and store the LINE userId on the
+// parent's profiles row (account-level, covers all watched students).
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: cors })
-  if (req.method !== 'POST') {
-    return new Response(JSON.stringify({ error: 'Method not allowed' }), { status: 405, headers: cors })
-  }
+  if (req.method !== 'POST') return json({ error: 'Method not allowed' }, 405)
 
   try {
-    const { code, redirect_uri, student_token } = await req.json()
-
-    if (!code || !redirect_uri || !student_token) {
+    const { code, redirect_uri, access_token } = await req.json()
+    if (!code || !redirect_uri || !access_token) {
       return json({ error: 'Missing required fields' }, 400)
     }
 
-    // 1. Exchange authorization code for LINE access token
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+    )
+
+    // 1. Identify the parent from their Supabase session token
+    const { data: { user }, error: userErr } = await supabase.auth.getUser(access_token)
+    if (userErr || !user) return json({ error: 'Unauthorized' }, 401)
+
+    // 2. Exchange LINE authorization code for a LINE access token
     const tokenRes = await fetch('https://api.line.me/oauth2/v2.1/token', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -37,31 +47,25 @@ Deno.serve(async (req) => {
       return json({ error: 'LINE token exchange failed' }, 502)
     }
 
-    const { access_token } = await tokenRes.json()
+    const { access_token: lineToken } = await tokenRes.json()
 
-    // 2. Get LINE user profile (userId, displayName, pictureUrl)
+    // 3. Get the LINE user profile
     const profileRes = await fetch('https://api.line.me/v2/profile', {
-      headers: { Authorization: `Bearer ${access_token}` },
+      headers: { Authorization: `Bearer ${lineToken}` },
     })
-
     if (!profileRes.ok) return json({ error: 'Failed to get LINE profile' }, 502)
 
     const { userId, displayName, pictureUrl } = await profileRes.json()
 
-    // 3. Store guardian LINE info on the student row (service role bypasses RLS)
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
-    )
-
+    // 4. Store the LINE identity on the parent's profile (service role bypasses RLS)
     const { error } = await supabase
-      .from('students')
+      .from('profiles')
       .update({
-        guardian_line_id: userId,
-        guardian_line_name: displayName,
-        guardian_line_picture: pictureUrl ?? null,
+        line_user_id:      userId,
+        line_display_name: displayName,
+        line_picture_url:  pictureUrl ?? null,
       })
-      .eq('qr_code', student_token)
+      .eq('id', user.id)
 
     if (error) {
       console.error('DB update error:', error)
