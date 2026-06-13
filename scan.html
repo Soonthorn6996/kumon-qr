@@ -1040,38 +1040,35 @@ async function saveAttendance(qrCode, subjectId) {
   return { action: 'in', student, subject, log: data }
 }
 
-// Send a LINE notification to the guardian (best-effort — never blocks scanning).
-// The Edge Function looks up guardian_line_id server-side; skips silently if not connected.
-function notifyGuardian(scanResult) {
+// POST to notify-guardian with the scanning staff's session JWT so the
+// Edge Function's JWT verification passes. Best-effort — never blocks scanning.
+async function postNotifyGuardian(payload) {
   try {
-    const { student, log, action } = scanResult
-    fetch(`${CONFIG.SUPABASE_URL}/functions/v1/notify-guardian`, {
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) return
+    await fetch(`${CONFIG.SUPABASE_URL}/functions/v1/notify-guardian`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'apikey': CONFIG.SUPABASE_ANON_KEY,
+        'Authorization': `Bearer ${session.access_token}`,
       },
-      body: JSON.stringify({ student_id: student.id, action, log_id: log.id }),
-    }).catch(err => console.warn('notify-guardian failed:', err))
+      body: JSON.stringify(payload),
+    })
   } catch (err) {
-    console.warn('notify-guardian skipped:', err)
+    console.warn('notify-guardian failed:', err)
   }
+}
+
+// LINE notification on check-in/out (skips silently if no guardian connected).
+function notifyGuardian(scanResult) {
+  const { student, log, action } = scanResult
+  postNotifyGuardian({ student_id: student.id, action, log_id: log.id })
 }
 
 // Push a scan photo (+ caption) to the guardian's LINE — best-effort.
 function notifyGuardianPhoto(studentId, photoUrl, caption) {
-  try {
-    fetch(`${CONFIG.SUPABASE_URL}/functions/v1/notify-guardian`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'apikey': CONFIG.SUPABASE_ANON_KEY,
-      },
-      body: JSON.stringify({ student_id: studentId, photo_url: photoUrl, caption }),
-    }).catch(err => console.warn('notify-guardian (photo) failed:', err))
-  } catch (err) {
-    console.warn('notify-guardian (photo) skipped:', err)
-  }
+  postNotifyGuardian({ student_id: studentId, photo_url: photoUrl, caption })
 }
 
 function renderResult(scanResult) {
